@@ -11,8 +11,10 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -23,15 +25,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Named;
 import javax.inject.Provider;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.protocol.HTTP;
-import org.apache.http.util.EntityUtils;
-import retrofit.http.HttpProfiler.RequestInformation;
+import retrofit.http.Profiler.RequestInformation;
+import retrofit.http.client.Client;
+import retrofit.http.client.Request;
+import retrofit.http.client.Response;
+import retrofit.io.TypedBytes;
 
 import static retrofit.http.Utils.SynchronousExecutor;
 
@@ -48,21 +47,20 @@ public class RestAdapter {
   static final String UTF_8 = "UTF-8";
 
   private final Server server;
-  private final Provider<HttpClient> httpClientProvider;
+  private final Provider<Client> clientProvider;
   private final Executor httpExecutor;
   private final Executor callbackExecutor;
-  private final Headers requestHeaders;
+  private final Provider<List<Header>> headersProvider;
   private final Converter converter;
-  private final HttpProfiler profiler;
+  private final Profiler profiler;
 
-  private RestAdapter(Server server, Provider<HttpClient> httpClientProvider, Executor httpExecutor,
-      Executor callbackExecutor, Headers requestHeaders, Converter converter,
-      HttpProfiler profiler) {
+  private RestAdapter(Server server, Provider<Client> clientProvider, Executor httpExecutor,
+      Executor callbackExecutor, Provider<List<Header>> headersProvider, Converter converter, Profiler profiler) {
     this.server = server;
-    this.httpClientProvider = httpClientProvider;
+    this.clientProvider = clientProvider;
     this.httpExecutor = httpExecutor;
     this.callbackExecutor = callbackExecutor;
-    this.requestHeaders = requestHeaders;
+    this.headersProvider = headersProvider;
     this.converter = converter;
     this.profiler = profiler;
   }
@@ -161,14 +159,13 @@ public class RestAdapter {
 
       String url = server.apiUrl();
       try {
-        // Build the request and headers.
-        final HttpUriRequest request = new HttpRequestBuilder(converter) //
-            .setMethod(methodDetails)
+        Request request = new RequestBuilder(converter) //
+            .setApiUrl(server.apiUrl())
             .setArgs(args)
-            .setApiUrl(url)
-            .setHeaders(requestHeaders)
+            .setHeaders(headersProvider.get())
+            .setMethod(methodDetails)
             .build();
-        url = request.getURI().toString();
+        url = request.getUrl();
 
         if (!methodDetails.isSynchronous) {
           // If we are executing asynchronously then update the current thread with a useful name.
@@ -181,9 +178,8 @@ public class RestAdapter {
         }
 
         LOGGER.fine("Sending " + request.getMethod() + " to " + url);
-        HttpResponse response = httpClientProvider.get().execute(request);
-        StatusLine statusLine = response.getStatusLine();
-        int statusCode = statusLine.getStatusCode();
+        Response response = clientProvider.get().execute(request);
+        int statusCode = response.getStatus();
 
         long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         if (profiler != null) {
@@ -191,30 +187,16 @@ public class RestAdapter {
           profiler.afterCall(requestInfo, elapsedTime, statusCode, profilerObject);
         }
 
-        HttpEntity entity = response.getEntity();
-        byte[] body = null;
-        if (entity != null) {
-          body = EntityUtils.toByteArray(entity);
-        }
+        byte[] body = response.getBody();
         if (LOGGER.isLoggable(Level.FINE)) {
           logResponseBody(url, body, statusCode, elapsedTime);
         }
 
-        org.apache.http.Header[] realHeaders = response.getAllHeaders();
-        Header[] headers = null;
-        if (realHeaders != null) {
-          headers = new Header[realHeaders.length];
-          for (int i = 0; i < realHeaders.length; i++) {
-            org.apache.http.Header realHeader = realHeaders[i];
-            String headerName = realHeader.getName();
-            String headerValue = realHeader.getValue();
-
-            if (HTTP.CONTENT_TYPE.equalsIgnoreCase(headerName) //
-                && !UTF_8.equalsIgnoreCase(Utils.parseCharset(headerValue))) {
-              throw new IOException("Only UTF-8 charset supported.");
-            }
-
-            headers[i] = new Header(headerName, headerValue);
+        List<Header> headers = response.getHeaders();
+        for (Header header : headers) {
+          if (HTTP.CONTENT_TYPE.equalsIgnoreCase(header.getName()) //
+              && !UTF_8.equalsIgnoreCase(Utils.parseCharset(header.getValue()))) {
+            throw new IOException("Only UTF-8 charset supported.");
           }
         }
 
@@ -239,6 +221,7 @@ public class RestAdapter {
 
   /** Cached details about an interface method. */
   static class MethodDetails {
+    static final int NO_SINGLE_ENTITY = -1;
     private static final Pattern PATH_PARAMETERS = Pattern.compile("\\{([a-z_-]*)\\}");
 
     final Method method;
@@ -247,12 +230,12 @@ public class RestAdapter {
     private boolean loaded = false;
 
     Type type;
-    HttpMethodType httpMethod;
+    Request.Method httpMethod;
     String path;
     Set<String> pathParams;
     QueryParam[] pathQueryParams;
     String[] pathNamedParams;
-    int singleEntityArgumentIndex = -1;
+    int singleEntityArgumentIndex = NO_SINGLE_ENTITY;
 
     MethodDetails(Method method) {
       this.method = method;
@@ -277,27 +260,41 @@ public class RestAdapter {
         if (annotationType == GET.class
             || annotationType == POST.class
             || annotationType == PUT.class
-            || annotationType == DELETE.class) {
+            || annotationType == DELETE.class
+            || annotationType == HEAD.class) {
           if (this.httpMethod != null) {
             throw new IllegalStateException(
                 "Method annotated with multiple HTTP method annotations: " + method);
           }
-          this.httpMethod = annotationType.getAnnotation(HttpMethod.class).value();
+
+          if (annotationType == GET.class) {
+            httpMethod = Request.Method.GET;
+          } else if (annotationType == POST.class) {
+            httpMethod = Request.Method.POST;
+          } else if (annotationType == PUT.class) {
+            httpMethod = Request.Method.PUT;
+          } else if (annotationType == DELETE.class) {
+            httpMethod = Request.Method.DELETE;
+          } else if (annotationType == HEAD.class) {
+            httpMethod = Request.Method.HEAD;
+          } else {
+            throw new IllegalArgumentException("Unknown annotation type " + annotationType);
+          }
+
           try {
             path = (String) annotationType.getMethod("value").invoke(annotation);
           } catch (Exception e) {
             throw new IllegalStateException("Failed to extract URI path.", e);
           }
-
           pathParams = parsePathParameters(path);
         } else if (annotationType == QueryParams.class) {
-          if (this.pathQueryParams != null) {
+          if (pathQueryParams != null) {
             throw new IllegalStateException(
                 "QueryParam and QueryParams annotations are mutually exclusive.");
           }
-          this.pathQueryParams = ((QueryParams) annotation).value();
+          pathQueryParams = ((QueryParams) annotation).value();
         } else if (annotationType == QueryParam.class) {
-          if (this.pathQueryParams != null) {
+          if (pathQueryParams != null) {
             throw new IllegalStateException(
                 "QueryParam and QueryParams annotations are mutually exclusive.");
           }
@@ -384,7 +381,7 @@ public class RestAdapter {
           if (annotationType == Named.class) {
             namedParams[i] = ((Named) parameterAnnotation).value();
           } else if (annotationType == SingleEntity.class) {
-            if (singleEntityArgumentIndex != -1) {
+            if (singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
               throw new IllegalStateException(
                   "Method annotated with multiple SingleEntity method annotations: " + method);
             }
@@ -423,23 +420,20 @@ public class RestAdapter {
     LOGGER.fine("---- END HTTP");
   }
 
-  private static HttpProfiler.RequestInformation getRequestInfo(Server server,
-      MethodDetails methodDetails, HttpUriRequest request) {
-    HttpMethodType httpMethod = methodDetails.httpMethod;
-    HttpProfiler.Method profilerMethod = httpMethod.profilerMethod();
+  private static Profiler.RequestInformation getRequestInfo(Server server,
+      MethodDetails methodDetails, Request request) {
+    Request.Method httpMethod = methodDetails.httpMethod;
 
     long contentLength = 0;
     String contentType = null;
-    if (request instanceof HttpEntityEnclosingRequestBase) {
-      HttpEntityEnclosingRequestBase entityReq = (HttpEntityEnclosingRequestBase) request;
-      HttpEntity entity = entityReq.getEntity();
-      contentLength = entity.getContentLength();
 
-      org.apache.http.Header entityContentType = entity.getContentType();
-      contentType = entityContentType != null ? entityContentType.getValue() : null;
+    TypedBytes body = request.getBody();
+    if (body != null) {
+      contentLength = body.length();
+      contentType = body.mimeType().mimeName();
     }
 
-    return new HttpProfiler.RequestInformation(profilerMethod, server.apiUrl(), methodDetails.path,
+    return new Profiler.RequestInformation(httpMethod, server.apiUrl(), methodDetails.path,
         contentLength, contentType);
   }
 
@@ -460,12 +454,12 @@ public class RestAdapter {
    */
   public static class Builder {
     private Server server;
-    private Provider<HttpClient> clientProvider;
+    private Provider<Client> clientProvider;
     private Executor httpExecutor;
     private Executor callbackExecutor;
-    private Headers headers;
+    private Provider<List<Header>> headersProvider;
     private Converter converter;
-    private HttpProfiler profiler;
+    private Profiler profiler;
 
     public Builder setServer(String endpoint) {
       if (endpoint == null) throw new NullPointerException("endpoint");
@@ -478,16 +472,16 @@ public class RestAdapter {
       return this;
     }
 
-    public Builder setClient(final HttpClient client) {
+    public Builder setClient(final Client client) {
       if (client == null) throw new NullPointerException("client");
-      return setClient(new Provider<HttpClient>() {
-        @Override public HttpClient get() {
+      return setClient(new Provider<Client>() {
+        @Override public Client get() {
           return client;
         }
       });
     }
 
-    public Builder setClient(Provider<HttpClient> clientProvider) {
+    public Builder setClient(Provider<Client> clientProvider) {
       if (clientProvider == null) throw new NullPointerException("clientProvider");
       this.clientProvider = clientProvider;
       return this;
@@ -509,9 +503,17 @@ public class RestAdapter {
       return this;
     }
 
-    public Builder setHeaders(Headers headers) {
-      if (headers == null) throw new NullPointerException("headers");
-      this.headers = headers;
+    public Builder setHeaders(final List<Header> headers) {
+      return setHeaders(new Provider<List<Header>>() {
+        @Override public List<Header> get() {
+          return headers;
+        }
+      });
+    }
+
+    public Builder setHeaders(Provider<List<Header>> headersProvider) {
+      if (headersProvider == null) throw new NullPointerException("headersProvider");
+      this.headersProvider = headersProvider;
       return this;
     }
 
@@ -521,7 +523,7 @@ public class RestAdapter {
       return this;
     }
 
-    public Builder setProfiler(HttpProfiler profiler) {
+    public Builder setProfiler(Profiler profiler) {
       if (profiler == null) throw new NullPointerException("profiler");
       this.profiler = profiler;
       return this;
@@ -532,7 +534,8 @@ public class RestAdapter {
         throw new IllegalArgumentException("Server may not be null.");
       }
       ensureSaneDefaults();
-      return new RestAdapter(server, clientProvider, httpExecutor, callbackExecutor, headers,
+      return new RestAdapter(server, clientProvider, httpExecutor, callbackExecutor,
+          headersProvider,
           converter, profiler);
     }
 
@@ -541,13 +544,20 @@ public class RestAdapter {
         converter = Platform.get().defaultConverter();
       }
       if (clientProvider == null) {
-        clientProvider = Platform.get().defaultHttpClient();
+        clientProvider = Platform.get().defaultClient();
       }
       if (httpExecutor == null) {
         httpExecutor = Platform.get().defaultHttpExecutor();
       }
       if (callbackExecutor == null) {
         callbackExecutor = Platform.get().defaultCallbackExecutor();
+      }
+      if (headersProvider == null) {
+        headersProvider = new Provider<List<Header>>() {
+          @Override public List<Header> get() {
+            return Collections.emptyList();
+          }
+        };
       }
     }
   }

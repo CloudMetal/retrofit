@@ -8,8 +8,7 @@ package retrofit.http;
  * @author Bob Lee (bob@squareup.com)
  */
 public class Server {
-
-  public static final String DEFAULT_TYPE = "production";
+  public static final String DEFAULT_TYPE = "default";
 
   private final String apiUrl;
   private final String type;

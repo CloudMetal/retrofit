@@ -3,12 +3,16 @@ package retrofit.http;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
+import com.google.gson.stream.JsonWriter;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.util.List;
 import retrofit.io.MimeType;
 import retrofit.io.TypedBytes;
 
@@ -39,19 +43,36 @@ public class GsonConverter implements Converter {
     }
   }
 
-  @Override public TypedBytes from(Object object) {
-    return new JsonTypedBytes(gson, object);
+  @Override public TypedBytes fromObject(Object object) {
+    try {
+      return new JsonTypedBytes(gson.toJson(object).getBytes(UTF_8));
+    } catch (UnsupportedEncodingException e) {
+      throw new IllegalStateException(UTF_8 + " encoding does not exist.", e);
+    }
+  }
+
+  @Override public TypedBytes fromParams(List<Parameter> parameters) {
+    try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      JsonWriter jsonWriter = new JsonWriter(new OutputStreamWriter(baos));
+      jsonWriter.beginObject();
+      for (Parameter parameter : parameters) {
+        jsonWriter.name(parameter.getName());
+        gson.toJson(parameter.getValue(), parameter.getType(), jsonWriter);
+      }
+      jsonWriter.endObject();
+      jsonWriter.close();
+      return new JsonTypedBytes(baos.toByteArray());
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to convert parameters to JSON.", e);
+    }
   }
 
   private static class JsonTypedBytes implements TypedBytes {
     private final byte[] jsonBytes;
 
-    JsonTypedBytes(Gson gson, Object object) {
-      try {
-        jsonBytes = gson.toJson(object).getBytes(UTF_8);
-      } catch (UnsupportedEncodingException e) {
-        throw new IllegalStateException(UTF_8 + " encoding does not exist.");
-      }
+    JsonTypedBytes(byte[] jsonBytes) {
+      this.jsonBytes = jsonBytes;
     }
 
     @Override public MimeType mimeType() {

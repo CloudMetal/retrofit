@@ -1,12 +1,14 @@
-// Copyright $today.year Square, Inc.
+// Copyright 2012 Square, Inc.
 package retrofit.http;
+
+import retrofit.http.client.Request;
 
 /**
  * A hook allowing clients to log HTTP method times and response status codes.
  *
  * @author Eric Burke (eric@squareup.com)
  */
-public interface HttpProfiler<T> {
+public interface Profiler<T> {
 
   /**
    * Invoked before an HTTP method call. The object returned by this method will be
@@ -29,24 +31,15 @@ public interface HttpProfiler<T> {
   void afterCall(RequestInformation requestInfo, long elapsedTime, int statusCode,
       T beforeCallData);
 
-  /** The HTTP method. */
-  public enum Method {
-    DELETE,
-    GET,
-    HEAD,
-    POST,
-    PUT
-  }
-
   /** Information about the HTTP request. */
   public static final class RequestInformation {
-    private final Method method;
+    private final Request.Method method;
     private final String baseUrl;
     private final String relativePath;
     private final long contentLength;
     private final String contentType;
 
-    public RequestInformation(Method method, String baseUrl, String relativePath,
+    public RequestInformation(Request.Method method, String baseUrl, String relativePath,
         long contentLength, String contentType) {
       this.method = method;
       this.baseUrl = baseUrl;
@@ -56,7 +49,7 @@ public interface HttpProfiler<T> {
     }
 
     /** Returns the HTTP method of the originating request. */
-    public Method getMethod() {
+    public Request.Method getMethod() {
       return method;
     }
 

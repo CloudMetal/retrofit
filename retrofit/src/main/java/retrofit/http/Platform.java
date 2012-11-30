@@ -1,6 +1,6 @@
 package retrofit.http;
 
-import android.net.http.AndroidHttpClient;
+import android.os.Build;
 import android.os.Process;
 import com.google.gson.Gson;
 import java.util.concurrent.Executor;
@@ -8,10 +8,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Provider;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
+import retrofit.android.AndroidApacheClient;
 import retrofit.android.MainThreadExecutor;
+import retrofit.http.client.ApacheClient;
+import retrofit.http.client.Client;
+import retrofit.http.client.UrlConnectionClient;
 
+import static android.os.Build.VERSION_CODES.GINGERBREAD;
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
 import static retrofit.http.Utils.SynchronousExecutor;
 import static retrofit.http.RestAdapter.THREAD_PREFIX;
@@ -35,16 +38,16 @@ abstract class Platform {
   Converter defaultConverter() {
     return new GsonConverter(new Gson());
   }
-  abstract Provider<HttpClient> defaultHttpClient();
+  abstract Provider<Client> defaultClient();
   abstract Executor defaultHttpExecutor();
   abstract Executor defaultCallbackExecutor();
 
   /** Provides sane defaults for operation on the JVM. */
   private static class Base extends Platform {
-    @Override Provider<HttpClient> defaultHttpClient() {
-      final HttpClient client = new DefaultHttpClient();
-      return new Provider<HttpClient>() {
-        @Override public HttpClient get() {
+    @Override Provider<Client> defaultClient() {
+      final Client client = new ApacheClient();
+      return new Provider<Client>() {
+        @Override public Client get() {
           return client;
         }
       };
@@ -72,11 +75,15 @@ abstract class Platform {
 
   /** Provides sane defaults for operation on Android. */
   private static class Android extends Platform {
-    @Override Provider<HttpClient> defaultHttpClient() {
-      // TODO use HttpUrlConnection on Android 2.3+
-      final HttpClient client = AndroidHttpClient.newInstance("Retrofit");
-      return new Provider<HttpClient>() {
-        @Override public HttpClient get() {
+    @Override Provider<Client> defaultClient() {
+      final Client client;
+      if (Build.VERSION.SDK_INT < GINGERBREAD) {
+        client = new AndroidApacheClient();
+      } else {
+        client = new UrlConnectionClient();
+      }
+      return new Provider<Client>() {
+        @Override public Client get() {
           return client;
         }
       };
