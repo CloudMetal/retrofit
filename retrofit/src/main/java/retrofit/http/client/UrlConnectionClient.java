@@ -22,7 +22,7 @@ public class UrlConnectionClient implements Client {
   protected void prepareConnection(HttpURLConnection connection) {
   }
 
-  private static HttpURLConnection createRequest(Request request) throws IOException {
+  static HttpURLConnection createRequest(Request request) throws IOException {
     URL url = new URL(request.getUrl());
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
     connection.setRequestMethod(request.getMethod());
@@ -44,7 +44,7 @@ public class UrlConnectionClient implements Client {
     return connection;
   }
 
-  private static Response parseResponse(HttpURLConnection urlConnection) throws IOException {
+  static Response parseResponse(HttpURLConnection urlConnection) throws IOException {
     int status = urlConnection.getResponseCode();
     String reason = urlConnection.getResponseMessage();
 

@@ -55,12 +55,12 @@ public class ApacheClient implements Client {
   protected void prepareResponse(HttpResponse response) {
   }
 
-  private static HttpUriRequest createRequest(Request request) {
+  static HttpUriRequest createRequest(Request request) {
     // TODO what do we do about multi-part?
     return new GenericHttpRequest(request);
   }
 
-  private static Response parseResponse(HttpResponse response) throws IOException {
+  static Response parseResponse(HttpResponse response) throws IOException {
     byte[] body = EntityUtils.toByteArray(response.getEntity());
 
     StatusLine statusLine = response.getStatusLine();

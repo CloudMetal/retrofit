@@ -12,8 +12,7 @@ import javax.inject.Named;
 import retrofit.http.client.Request;
 import retrofit.io.TypedBytes;
 
-import static retrofit.http.RestAdapter.MethodDetails;
-import static retrofit.http.RestAdapter.MethodDetails.NO_SINGLE_ENTITY;
+import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 import static retrofit.http.RestAdapter.UTF_8;
 
 /**
@@ -29,7 +28,7 @@ import static retrofit.http.RestAdapter.UTF_8;
 final class RequestBuilder {
   private final Converter converter;
 
-  private MethodDetails methodDetails;
+  private RestMethodInfo methodDetails;
   private Object[] args;
   private String apiUrl;
   private List<Header> headers;
@@ -38,7 +37,7 @@ final class RequestBuilder {
     this.converter = converter;
   }
 
-  RequestBuilder setMethod(MethodDetails methodDetails) {
+  RequestBuilder setMethod(RestMethodInfo methodDetails) {
     this.methodDetails = methodDetails;
     return this;
   }

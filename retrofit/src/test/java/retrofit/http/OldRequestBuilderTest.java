@@ -8,14 +8,14 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.UUID;
 import javax.inject.Named;
+import org.junit.Ignore;
 import org.junit.Test;
 import retrofit.http.client.Request;
 
 import static org.fest.assertions.api.Assertions.assertThat;
-import static retrofit.http.RestAdapter.MethodDetails;
 
-/** @author Eric Denman (edenman@squareup.com) */
-public class RequestBuilderTest {
+@Ignore
+public class OldRequestBuilderTest {
   private static final Gson GSON = new Gson();
   private static final String API_URL = "http://taqueria.com/lengua/taco";
 
@@ -157,7 +157,7 @@ public class RequestBuilderTest {
   }
 
   private Request build(Method method, Object[] args) throws URISyntaxException {
-    MethodDetails methodDetails = new MethodDetails(method);
+    RestMethodInfo methodDetails = new RestMethodInfo(method);
     methodDetails.init();
     return new RequestBuilder(new GsonConverter(GSON)) //
         .setMethod(methodDetails) //

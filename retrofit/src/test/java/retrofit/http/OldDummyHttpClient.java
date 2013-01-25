@@ -19,7 +19,7 @@ import java.io.IOException;
  *
  * @author Bob Lee (bob@squareup.com)
  */
-class DummyHttpClient implements HttpClient {
+class OldDummyHttpClient implements HttpClient {
   public <T> T execute(HttpUriRequest request,
       ResponseHandler<? extends T> responseHandler)
       throws IOException, ClientProtocolException {
