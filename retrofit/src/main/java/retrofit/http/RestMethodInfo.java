@@ -20,14 +20,14 @@ final class RestMethodInfo {
   final Method method;
   final boolean isSynchronous;
 
-  private boolean loaded = false;
+  boolean loaded = false;
 
   Type type;
   RestMethod restMethod;
   String path;
   Set<String> pathParams;
   QueryParam[] pathQueryParams;
-  String[] pathNamedParams;
+  String[] namedParams;
   int singleEntityArgumentIndex = NO_SINGLE_ENTITY;
 
   RestMethodInfo(Method method) {
@@ -148,7 +148,7 @@ final class RestMethodInfo {
             method));
   }
 
-  /** Loads {@link #pathNamedParams} and {@link #singleEntityArgumentIndex}. */
+  /** Loads {@link #namedParams} and {@link #singleEntityArgumentIndex}. */
   private void parseParameterAnnotations() {
     Annotation[][] parameterAnnotations = method.getParameterAnnotations();
     int count = parameterAnnotations.length;
@@ -174,7 +174,7 @@ final class RestMethodInfo {
         }
       }
     }
-    pathNamedParams = namedParams;
+    this.namedParams = namedParams;
   }
 
   /**

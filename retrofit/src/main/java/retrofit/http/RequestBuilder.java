@@ -8,12 +8,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import javax.inject.Named;
 import retrofit.http.client.Request;
 import retrofit.io.TypedBytes;
 
-import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 import static retrofit.http.RestAdapter.UTF_8;
+import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 
 /**
  * Builds HTTP requests from Java method invocations.  Handles "path parameters" in the
@@ -21,14 +20,14 @@ import static retrofit.http.RestAdapter.UTF_8;
  * {@code @Named("id")} is inserted into the url.  Note that this replacement can be recursive if:
  * <ol>
  * <li>Multiple sets of brackets are nested ("path/to/{{key}a}.</li>
- * <li>The order of {@link Named @Named} values go from innermost to outermost.</li>
- * <li>The values replaced correspond to {@link Named @Named} parameters.</li>
+ * <li>The order of {@link javax.inject.Named @Named} values go from innermost to outermost.</li>
+ * <li>The values replaced correspond to {@link javax.inject.Named @Named} parameters.</li>
  * </ol>
  */
 final class RequestBuilder {
   private final Converter converter;
 
-  private RestMethodInfo methodDetails;
+  private RestMethodInfo methodInfo;
   private Object[] args;
   private String apiUrl;
   private List<Header> headers;
@@ -37,8 +36,8 @@ final class RequestBuilder {
     this.converter = converter;
   }
 
-  RequestBuilder setMethod(RestMethodInfo methodDetails) {
-    this.methodDetails = methodDetails;
+  RequestBuilder setMethodInfo(RestMethodInfo methodDetails) {
+    this.methodInfo = methodDetails;
     return this;
   }
 
@@ -62,13 +61,13 @@ final class RequestBuilder {
     List<Parameter> params = new ArrayList<Parameter>();
 
     // Add query parameter(s), if specified.
-    for (QueryParam annotation : methodDetails.pathQueryParams) {
+    for (QueryParam annotation : methodInfo.pathQueryParams) {
       params.add(new Parameter(annotation.name(), String.class, annotation.value()));
     }
 
     // Add arguments as parameters.
-    String[] pathNamedParams = methodDetails.pathNamedParams;
-    int singleEntityArgumentIndex = methodDetails.singleEntityArgumentIndex;
+    String[] pathNamedParams = methodInfo.namedParams;
+    int singleEntityArgumentIndex = methodInfo.singleEntityArgumentIndex;
     for (int i = 0; i < pathNamedParams.length; i++) {
       Object arg = args[i];
       if (arg == null) continue;
@@ -82,9 +81,9 @@ final class RequestBuilder {
 
   Request build() throws URISyntaxException {
     // Alter parameter list if path parameters are present.
-    Set<String> pathParams = new LinkedHashSet<String>(methodDetails.pathParams);
+    Set<String> pathParams = new LinkedHashSet<String>(methodInfo.pathParams);
     List<Parameter> paramList = createParamList();
-    String replacedPath = methodDetails.path;
+    String replacedPath = methodInfo.path;
     if (!pathParams.isEmpty()) {
       for (String pathParam : pathParams) {
         Parameter found = null;
@@ -110,7 +109,7 @@ final class RequestBuilder {
       }
     }
 
-    if (methodDetails.singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
+    if (methodInfo.singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
       // We're passing a JSON object as the entity: paramList should only contain path param values.
       if (!paramList.isEmpty()) {
         throw new IllegalStateException(
@@ -127,7 +126,7 @@ final class RequestBuilder {
     }
 
     TypedBytes body = null;
-    if (!methodDetails.restMethod.hasBody()) {
+    if (!methodInfo.restMethod.hasBody()) {
       if (!paramList.isEmpty()) {
         url.append("?");
         for (int i = 0, count = paramList.size(); i < count; i++) {
@@ -140,8 +139,8 @@ final class RequestBuilder {
       }
     } else if (!paramList.isEmpty()) {
       body = converter.fromParams(paramList);
-    } else if (methodDetails.singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
-      Object singleEntity = args[methodDetails.singleEntityArgumentIndex];
+    } else if (methodInfo.singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
+      Object singleEntity = args[methodInfo.singleEntityArgumentIndex];
       if (singleEntity instanceof TypedBytes) {
         body = (TypedBytes) singleEntity;
       } else {
@@ -149,6 +148,6 @@ final class RequestBuilder {
       }
     }
 
-    return new Request(methodDetails.restMethod.value(), url.toString(), headers, body);
+    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body);
   }
 }

@@ -56,7 +56,6 @@
     <!-- Test Dependencies -->
     <junit.version>4.10</junit.version>
     <fest.version>2.0M8</fest.version>
-    <easymock.version>3.1</easymock.version>
     <mockito.version>1.9.5-rc1</mockito.version>
   </properties>
 
@@ -126,11 +125,6 @@
         <version>${httpcomponents.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>org.easymock</groupId>
-        <artifactId>easymock</artifactId>
-        <version>${easymock.version}</version>
-      </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>

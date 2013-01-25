@@ -16,7 +16,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Named;
 import javax.inject.Provider;
 import org.apache.http.protocol.HTTP;
 import retrofit.http.Profiler.RequestInformation;
@@ -63,8 +62,8 @@ public class RestAdapter {
    * Adapts a Java interface to a REST API.
    * <p/>
    * The relative path for a given method is obtained from an annotation on the method describing
-   * the request type. The names of URL parameters are retrieved from {@link Named} annotations on
-   * the method parameters.
+   * the request type. The names of URL parameters are retrieved from {@link javax.inject.Named}
+   * annotations on the method parameters.
    * <p/>
    * HTTP requests happen in one of two ways:
    * <ul>
@@ -142,8 +141,6 @@ public class RestAdapter {
      * @throws RetrofitError Thrown if any error occurs during the HTTP request.
      */
     private Object invokeRequest(RestMethodInfo methodDetails, Object[] args) {
-      long start = System.nanoTime();
-
       methodDetails.init(); // Ensure all relevant method information has been loaded.
 
       String url = server.apiUrl();
@@ -152,9 +149,10 @@ public class RestAdapter {
             .setApiUrl(server.apiUrl())
             .setArgs(args)
             .setHeaders(headersProvider.get())
-            .setMethod(methodDetails)
+            .setMethodInfo(methodDetails)
             .build();
         url = request.getUrl();
+        LOGGER.fine("Sending " + request.getMethod() + " to " + url);
 
         if (!methodDetails.isSynchronous) {
           // If we are executing asynchronously then update the current thread with a useful name.
@@ -166,11 +164,11 @@ public class RestAdapter {
           profilerObject = profiler.beforeCall();
         }
 
-        LOGGER.fine("Sending " + request.getMethod() + " to " + url);
+        long start = System.nanoTime();
         Response response = clientProvider.get().execute(request);
-        int statusCode = response.getStatus();
-
         long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        int statusCode = response.getStatus();
         if (profiler != null) {
           RequestInformation requestInfo = getRequestInfo(server, methodDetails, request);
           profiler.afterCall(requestInfo, elapsedTime, statusCode, profilerObject);

@@ -24,7 +24,7 @@ import static retrofit.http.RestAdapter.UTF_8;
  * @author Jake Wharton (jw@squareup.com)
  */
 public class GsonConverter implements Converter {
-  private static final MimeType JSON = new MimeType("application/json", "json");
+  static final MimeType JSON = new MimeType("application/json", "json");
 
   private final Gson gson;
 
@@ -68,8 +68,8 @@ public class GsonConverter implements Converter {
     }
   }
 
-  private static class JsonTypedBytes implements TypedBytes {
-    private final byte[] jsonBytes;
+  static class JsonTypedBytes implements TypedBytes {
+    final byte[] jsonBytes;
 
     JsonTypedBytes(byte[] jsonBytes) {
       this.jsonBytes = jsonBytes;

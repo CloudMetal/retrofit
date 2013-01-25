@@ -11,10 +11,6 @@ import java.util.Set;
 import javax.inject.Named;
 import org.junit.Ignore;
 import org.junit.Test;
-import retrofit.http.testing.ExtendingCallback;
-import retrofit.http.testing.Response;
-import retrofit.http.testing.ResponseCallback;
-import retrofit.http.testing.TestingUtils;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -266,7 +262,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).isEmpty();
+    assertThat(methodInfo.namedParams).isEmpty();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
   }
 
@@ -274,7 +270,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "b");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(1).containsSequence("a");
+    assertThat(methodInfo.namedParams).hasSize(1).containsSequence("a");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
   }
 
@@ -282,7 +278,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "c");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(3).containsSequence("a", "b", "c");
+    assertThat(methodInfo.namedParams).hasSize(3).containsSequence("a", "b", "c");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
   }
 
@@ -290,7 +286,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "d");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).isEmpty();
+    assertThat(methodInfo.namedParams).isEmpty();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
   }
 
@@ -298,7 +294,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "e");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(1).containsSequence("a");
+    assertThat(methodInfo.namedParams).hasSize(1).containsSequence("a");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
   }
 
@@ -306,7 +302,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "f");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(2).containsSequence("a", "b");
+    assertThat(methodInfo.namedParams).hasSize(2).containsSequence("a", "b");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
   }
 
@@ -314,8 +310,8 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "g");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(1);
-    assertThat(methodInfo.pathNamedParams[0]).isNull();
+    assertThat(methodInfo.namedParams).hasSize(1);
+    assertThat(methodInfo.namedParams[0]).isNull();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(0);
   }
 
@@ -323,8 +319,8 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "h");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(1);
-    assertThat(methodInfo.pathNamedParams[0]).isNull();
+    assertThat(methodInfo.namedParams).hasSize(1);
+    assertThat(methodInfo.namedParams[0]).isNull();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(0);
   }
 
@@ -339,7 +335,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "j");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(3).containsSequence("a", null, "c");
+    assertThat(methodInfo.namedParams).hasSize(3).containsSequence("a", null, "c");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(1);
   }
 
@@ -347,7 +343,7 @@ public class RestMethodInfoTest {
     Method method = TestingUtils.getMethod(ParameterExamples.class, "k");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.pathNamedParams).hasSize(3).containsSequence("a", null, "c");
+    assertThat(methodInfo.namedParams).hasSize(3).containsSequence("a", null, "c");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(1);
   }
 

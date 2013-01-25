@@ -1,5 +1,5 @@
 // Copyright 2013 Square, Inc.
-package retrofit.http.testing;
+package retrofit.http;
 
 import java.lang.reflect.Method;
 

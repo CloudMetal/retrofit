@@ -1,7 +1,5 @@
 // Copyright 2013 Square, Inc.
-package retrofit.http.testing;
-
-import retrofit.http.Callback;
+package retrofit.http;
 
 public interface ResponseCallback extends Callback<Response> {
 }
