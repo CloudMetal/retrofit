@@ -6,27 +6,13 @@ import retrofit.http.Header;
 import retrofit.io.TypedBytes;
 
 /** Encapsulates all of the information necessary to make an HTTP request. */
-public class Request {
-  public enum Method {
-    GET(false),
-    POST(true),
-    PUT(true),
-    DELETE(false),
-    HEAD(false);
-
-    public final boolean hasBody;
-
-    private Method(boolean hasBody) {
-      this.hasBody = hasBody;
-    }
-  }
-
-  private final Method method;
+public final class Request {
+  private final String method;
   private final String url;
   private final List<Header> headers;
   private final TypedBytes body;
 
-  public Request(Method method, String url, List<Header> headers, TypedBytes body) {
+  public Request(String method, String url, List<Header> headers, TypedBytes body) {
     this.method = method;
     this.url = url;
     this.body = body;
@@ -38,7 +24,7 @@ public class Request {
   }
 
   /** HTTP method verb. */
-  public Method getMethod() {
+  public String getMethod() {
     return method;
   }
 

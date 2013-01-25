@@ -55,7 +55,8 @@ public class RestAdapter {
   private final Profiler profiler;
 
   private RestAdapter(Server server, Provider<Client> clientProvider, Executor httpExecutor,
-      Executor callbackExecutor, Provider<List<Header>> headersProvider, Converter converter, Profiler profiler) {
+      Executor callbackExecutor, Provider<List<Header>> headersProvider, Converter converter,
+      Profiler profiler) {
     this.server = server;
     this.clientProvider = clientProvider;
     this.httpExecutor = httpExecutor;
@@ -68,17 +69,17 @@ public class RestAdapter {
   /**
    * Adapts a Java interface to a REST API.
    * <p/>
-   * The relative path for a given method is obtained from a {@link GET}, {@link POST}, {@link PUT},
-   * or {@link DELETE} annotation on the method. Gets the names of URL parameters from
-   * {@link javax.inject.Named Named} annotations on the method parameters.
+   * The relative path for a given method is obtained from an annotation on the method describing
+   * the request type. The names of URL parameters are retrieved from {@link Named} annotations on
+   * the method parameters.
    * <p/>
    * HTTP requests happen in one of two ways:
    * <ul>
    * <li>On the provided HTTP {@link Executor} with callbacks marshaled to the callback
    * {@link Executor}. The last method parameter should be of type {@link Callback}. The HTTP
    * response will be converted to the callback's parameter type using the specified
-   * {@link Converter}. If the callback parameter type uses a wildcard, the lower bound will be used
-   * as the conversion type.</li>
+   * {@link Converter}. If the callback parameter type uses a wildcard, the lower bound will be
+   * used as the conversion type.</li>
    * <li>On the current thread returning the response or throwing a {@link RetrofitError}. The HTTP
    * response will be converted to the method's return type using the specified
    * {@link Converter}.</li>
@@ -111,7 +112,7 @@ public class RestAdapter {
       this.declaringType = declaringType;
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") //
     @Override public Object invoke(Object proxy, Method method, final Object[] args)
         throws InvocationTargetException, IllegalAccessException {
       // If the method is not a direct member of the interface then defer to normal invocation.
@@ -222,7 +223,7 @@ public class RestAdapter {
   /** Cached details about an interface method. */
   static class MethodDetails {
     static final int NO_SINGLE_ENTITY = -1;
-    private static final Pattern PATH_PARAMETERS = Pattern.compile("\\{([a-z_-]*)\\}");
+    private static final Pattern PATH_PARAMETERS = Pattern.compile("\\{([a-z_-]+)\\}");
 
     final Method method;
     final boolean isSynchronous;
@@ -230,7 +231,7 @@ public class RestAdapter {
     private boolean loaded = false;
 
     Type type;
-    Request.Method httpMethod;
+    RestMethod restMethod;
     String path;
     Set<String> pathParams;
     QueryParam[] pathQueryParams;
@@ -251,58 +252,44 @@ public class RestAdapter {
       loaded = true;
     }
 
-    /** Loads {@link #httpMethod}, {@link #path}, and {@link #pathQueryParams}. */
+    /** Loads {@link #restMethod}, {@link #path}, and {@link #pathQueryParams}. */
     private void parseMethodAnnotations() {
-      for (Annotation annotation : method.getAnnotations()) {
-        Class<? extends Annotation> annotationType = annotation.annotationType();
-
-        // Look for an HttpMethod annotation describing the request type.
-        if (annotationType == GET.class
-            || annotationType == POST.class
-            || annotationType == PUT.class
-            || annotationType == DELETE.class
-            || annotationType == HEAD.class) {
-          if (this.httpMethod != null) {
-            throw new IllegalStateException(
-                "Method annotated with multiple HTTP method annotations: " + method);
+      for (Annotation methodAnnotation : method.getAnnotations()) {
+        Class<? extends Annotation> annotationType = methodAnnotation.annotationType();
+        RestMethod methodInfo = null;
+        for (Annotation innerAnnotation : annotationType.getAnnotations()) {
+          if (RestMethod.class == innerAnnotation.annotationType()) {
+            methodInfo = (RestMethod) innerAnnotation;
+            break;
           }
-
-          if (annotationType == GET.class) {
-            httpMethod = Request.Method.GET;
-          } else if (annotationType == POST.class) {
-            httpMethod = Request.Method.POST;
-          } else if (annotationType == PUT.class) {
-            httpMethod = Request.Method.PUT;
-          } else if (annotationType == DELETE.class) {
-            httpMethod = Request.Method.DELETE;
-          } else if (annotationType == HEAD.class) {
-            httpMethod = Request.Method.HEAD;
-          } else {
-            throw new IllegalArgumentException("Unknown annotation type " + annotationType);
+        }
+        if (methodInfo != null) {
+          if (restMethod != null) {
+            throw new IllegalArgumentException("Method contains multiple HTTP annotations.");
           }
-
           try {
-            path = (String) annotationType.getMethod("value").invoke(annotation);
+            path = (String) annotationType.getMethod("value").invoke(methodAnnotation);
           } catch (Exception e) {
-            throw new IllegalStateException("Failed to extract URI path.", e);
+            throw new RuntimeException("Failed to extract URI path.", e);
           }
           pathParams = parsePathParameters(path);
+          restMethod = methodInfo;
         } else if (annotationType == QueryParams.class) {
           if (pathQueryParams != null) {
             throw new IllegalStateException(
                 "QueryParam and QueryParams annotations are mutually exclusive.");
           }
-          pathQueryParams = ((QueryParams) annotation).value();
+          pathQueryParams = ((QueryParams) methodAnnotation).value();
         } else if (annotationType == QueryParam.class) {
           if (pathQueryParams != null) {
             throw new IllegalStateException(
                 "QueryParam and QueryParams annotations are mutually exclusive.");
           }
-          this.pathQueryParams = new QueryParam[] { (QueryParam) annotation };
+          pathQueryParams = new QueryParam[] { (QueryParam) methodAnnotation };
         }
       }
 
-      if (httpMethod == null) {
+      if (restMethod == null) {
         throw new IllegalStateException(
             "Method not annotated with GET, POST, PUT, or DELETE: " + method);
       }
@@ -396,8 +383,8 @@ public class RestAdapter {
     }
 
     /**
-     * Gets the set of unique path parameters used in the given URI. If a parameter is used twice in
-     * the URI, it will only show up once in the set.
+     * Gets the set of unique path parameters used in the given URI. If a parameter is used twice
+     * in the URI, it will only show up once in the set.
      */
     static Set<String> parsePathParameters(String path) {
       Matcher m = PATH_PARAMETERS.matcher(path);
@@ -422,8 +409,6 @@ public class RestAdapter {
 
   private static Profiler.RequestInformation getRequestInfo(Server server,
       MethodDetails methodDetails, Request request) {
-    Request.Method httpMethod = methodDetails.httpMethod;
-
     long contentLength = 0;
     String contentType = null;
 
@@ -433,8 +418,8 @@ public class RestAdapter {
       contentType = body.mimeType().mimeName();
     }
 
-    return new Profiler.RequestInformation(httpMethod, server.apiUrl(), methodDetails.path,
-        contentLength, contentType);
+    return new Profiler.RequestInformation(methodDetails.restMethod.value(), server.apiUrl(),
+        methodDetails.path, contentLength, contentType);
   }
 
   /**
@@ -535,8 +520,7 @@ public class RestAdapter {
       }
       ensureSaneDefaults();
       return new RestAdapter(server, clientProvider, httpExecutor, callbackExecutor,
-          headersProvider,
-          converter, profiler);
+          headersProvider, converter, profiler);
     }
 
     private void ensureSaneDefaults() {

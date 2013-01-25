@@ -128,7 +128,7 @@ final class RequestBuilder {
     }
 
     TypedBytes body = null;
-    if (!methodDetails.httpMethod.hasBody) {
+    if (!methodDetails.restMethod.hasBody()) {
       if (!paramList.isEmpty()) {
         url.append("?");
         for (int i = 0, count = paramList.size(); i < count; i++) {
@@ -150,6 +150,6 @@ final class RequestBuilder {
       }
     }
 
-    return new Request(methodDetails.httpMethod, url.toString(), headers, body);
+    return new Request(methodDetails.restMethod.value(), url.toString(), headers, body);
   }
 }

@@ -13,8 +13,6 @@ import retrofit.http.client.Request;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 import static retrofit.http.RestAdapter.MethodDetails;
-import static retrofit.http.client.Request.Method.GET;
-import static retrofit.http.client.Request.Method.PUT;
 
 /** @author Eric Denman (edenman@squareup.com) */
 public class RequestBuilderTest {
@@ -27,7 +25,7 @@ public class RequestBuilderTest {
     Object[] args = new Object[] { expectedId, new MyCallback() };
     Request request = build(method, args);
 
-    assertThat(request.getMethod()).isEqualTo(GET);
+    assertThat(request.getMethod()).isEqualTo("GET");
 
     // Make sure the url param got translated.
     assertThat(request.getUrl()).isEqualTo(API_URL + "/foo/bar?id=" + expectedId);
@@ -40,7 +38,7 @@ public class RequestBuilderTest {
     Object[] args = new Object[] { expectedId, category, new MyCallback() };
     Request request = build(method, args);
 
-    assertThat(request.getMethod()).isEqualTo(GET);
+    assertThat(request.getMethod()).isEqualTo("GET");
 
     // Make sure the url param got translated.
     assertThat(request.getUrl()) //
@@ -54,7 +52,7 @@ public class RequestBuilderTest {
     Object[] args = new Object[] { expectedId, category, new MyCallback() };
     Request request = build(method, args);
 
-    assertThat(request.getMethod()).isEqualTo(GET);
+    assertThat(request.getMethod()).isEqualTo("GET");
 
     // Make sure the url param got translated.
     assertThat(request.getUrl()).isEqualTo(
@@ -68,7 +66,7 @@ public class RequestBuilderTest {
     Object[] args = new Object[] { new MyJsonObj(bodyText), expectedId, new MyCallback() };
     Request request = build(method, args);
 
-    assertThat(request.getMethod()).isEqualTo(PUT);
+    assertThat(request.getMethod()).isEqualTo("PUT");
 
     // Make sure the url param got translated.
     assertThat(request.getUrl()).isEqualTo(API_URL + "/foo/bar/" + expectedId);
@@ -87,7 +85,7 @@ public class RequestBuilderTest {
     Object[] args = new Object[] { expectedId, bodyText, new MyCallback() };
     Request request = build(method, args);
 
-    assertThat(request.getMethod()).isEqualTo(PUT);
+    assertThat(request.getMethod()).isEqualTo("PUT");
 
     // Make sure the url param got translated.
     assertThat(request.getUrl()).isEqualTo(API_URL + "/foo/bar/" + expectedId);

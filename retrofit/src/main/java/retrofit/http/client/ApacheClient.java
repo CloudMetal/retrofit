@@ -5,17 +5,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.mime.MIME;
@@ -60,49 +56,8 @@ public class ApacheClient implements Client {
   }
 
   private static HttpUriRequest createRequest(Request request) {
-    String url = request.getUrl();
-    switch (request.getMethod()) {
-      case GET:
-        HttpGet get = new HttpGet(url);
-        addHeaders(request, get);
-        return get;
-      case DELETE:
-        HttpDelete delete = new HttpDelete(url);
-        addHeaders(request, delete);
-        return delete;
-      case HEAD:
-        HttpHead head = new HttpHead(url);
-        addHeaders(request, head);
-        return head;
-      case POST:
-        HttpPost post = new HttpPost(url);
-        addHeaders(request, post);
-        addBody(request, post);
-        return post;
-      case PUT:
-        HttpPut put = new HttpPut(url);
-        addHeaders(request, put);
-        addBody(request, put);
-        return put;
-      default:
-        throw new IllegalArgumentException("Unknown request type: " + request.getMethod());
-    }
-  }
-
-  private static void addBody(Request request, HttpEntityEnclosingRequest apacheRequest) {
-    // Set the request body, if applicable.
     // TODO what do we do about multi-part?
-    TypedBytes body = request.getBody();
-    if (body != null) {
-      apacheRequest.setEntity(new TypedBytesEntity(body));
-    }
-  }
-
-  private static void addHeaders(Request request, HttpUriRequest apacheRequest) {
-    List<Header> headers = request.getHeaders();
-    for (Header header : headers) {
-      apacheRequest.setHeader(new BasicHeader(header.getName(), header.getValue()));
-    }
+    return new GenericHttpRequest(request);
   }
 
   private static Response parseResponse(HttpResponse response) throws IOException {
@@ -118,6 +73,32 @@ public class ApacheClient implements Client {
     }
 
     return new Response(status, reason, headers, body);
+  }
+
+  private static class GenericHttpRequest extends HttpEntityEnclosingRequestBase {
+    private final String method;
+
+    GenericHttpRequest(Request request) {
+      super();
+      method = request.getMethod();
+      setURI(URI.create(request.getUrl()));
+
+      // Add all headers.
+      List<Header> headers = request.getHeaders();
+      for (Header header : headers) {
+        addHeader(new BasicHeader(header.getName(), header.getValue()));
+      }
+
+      // Add the content body, if any.
+      TypedBytes body = request.getBody();
+      if (body != null) {
+        setEntity(new TypedBytesEntity(body));
+      }
+    }
+
+    @Override public String getMethod() {
+      return method;
+    }
   }
 
   /** Adapts ContentBody to TypedBytes. */

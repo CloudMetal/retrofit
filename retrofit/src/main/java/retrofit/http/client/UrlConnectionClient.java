@@ -25,7 +25,7 @@ public class UrlConnectionClient implements Client {
   private static HttpURLConnection createRequest(Request request) throws IOException {
     URL url = new URL(request.getUrl());
     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-    connection.setRequestMethod(request.getMethod().name());
+    connection.setRequestMethod(request.getMethod());
 
     // Add headers to the request.
     List<Header> headers = request.getHeaders();

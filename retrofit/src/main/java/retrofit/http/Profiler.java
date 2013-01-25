@@ -1,8 +1,6 @@
 // Copyright 2012 Square, Inc.
 package retrofit.http;
 
-import retrofit.http.client.Request;
-
 /**
  * A hook allowing clients to log HTTP method times and response status codes.
  *
@@ -33,13 +31,13 @@ public interface Profiler<T> {
 
   /** Information about the HTTP request. */
   public static final class RequestInformation {
-    private final Request.Method method;
+    private final String method;
     private final String baseUrl;
     private final String relativePath;
     private final long contentLength;
     private final String contentType;
 
-    public RequestInformation(Request.Method method, String baseUrl, String relativePath,
+    public RequestInformation(String method, String baseUrl, String relativePath,
         long contentLength, String contentType) {
       this.method = method;
       this.baseUrl = baseUrl;
@@ -49,7 +47,7 @@ public interface Profiler<T> {
     }
 
     /** Returns the HTTP method of the originating request. */
-    public Request.Method getMethod() {
+    public String getMethod() {
       return method;
     }
 
