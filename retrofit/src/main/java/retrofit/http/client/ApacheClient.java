@@ -60,7 +60,6 @@ public class ApacheClient implements Client {
   }
 
   static HttpUriRequest createRequest(Request request) {
-    // TODO what do we do about multi-part?
     return new GenericHttpRequest(request);
   }
 
@@ -104,6 +103,7 @@ public class ApacheClient implements Client {
           String key = entry.getKey();
           entity.addPart(key, new TypedBytesBody(entry.getValue(), key));
         }
+        setEntity(entity);
       }
     }
 

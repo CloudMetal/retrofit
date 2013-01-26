@@ -9,7 +9,6 @@ import retrofit.http.client.Request;
 import retrofit.io.TypedBytes;
 
 import static org.fest.assertions.api.Assertions.assertThat;
-import static retrofit.http.RequestBuilder.StringTypedBytes;
 import static retrofit.http.RequestBuilderHelper.URL;
 
 public class RequestBuilderTest {
@@ -57,10 +56,11 @@ public class RequestBuilderTest {
         .setPath("foo/bar/{ping}/") //
         .addNamedParam("ping", "pong") //
         .addNamedParam("kit", "kat") //
+        .addNamedParam("riff", "raff") //
         .build();
     assertThat(request.getMethod()).isEqualTo("GET");
     assertThat(request.getHeaders()).isEmpty();
-    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/?kit=kat");
+    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/?kit=kat&riff=raff");
     assertThat(request.getBody()).isNull();
     assertThat(request.getBodyParameters()).isNull();
   }
@@ -232,6 +232,21 @@ public class RequestBuilderTest {
     assertThat(request.getBodyParameters()).hasSize(2);
     assertTypedBytes(request.getBodyParameters().get("ping"), "pong");
     assertTypedBytes(request.getBodyParameters().get("kit"), "kat");
+  }
+
+  @Test public void simpleHeaders() throws Exception {
+    Request request = new RequestBuilderHelper() //
+        .setMethod("GET") //
+        .setPath("foo/bar/") //
+        .addHeader("ping", "pong") //
+        .addHeader("kit", "kat") //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()) //
+        .containsExactly(new Header("ping", "pong"), new Header("kit", "kat"));
+    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
+    assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   private static void assertTypedBytes(TypedBytes bytes, String expected) throws IOException {

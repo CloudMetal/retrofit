@@ -139,7 +139,7 @@ final class RequestBuilder {
         for (int i = 0, count = paramList.size(); i < count; i++) {
           Parameter nonPathParam = paramList.get(i);
           url.append(nonPathParam.getName()).append("=").append(nonPathParam.getValue());
-          if (i > 0 && i < count - 1) {
+          if (i < count - 1) {
             url.append("&");
           }
         }

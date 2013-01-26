@@ -1,7 +1,7 @@
 // Copyright 2013 Square, Inc.
 package retrofit.http;
 
-class Response {
+public class Response {
   final String text;
 
   public Response(String text) {
