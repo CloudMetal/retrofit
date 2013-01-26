@@ -20,7 +20,7 @@ public interface Converter {
    * @throws ConversionException If conversion was unable to complete. This will trigger a call to
    * {@link Callback#failure(RetrofitError)} or throw a {@link retrofit.http.RetrofitError}.
    */
-  Object to(byte[] body, Type type) throws ConversionException;
+  Object fromBody(byte[] body, Type type) throws ConversionException;
 
   /**
    * Convert and object to an appropriate representation for HTTP transport.
@@ -28,7 +28,7 @@ public interface Converter {
    * @param object Object instance to convert.
    * @return Representation of the specified object as bytes.
    */
-  TypedBytes fromObject(Object object);
+  TypedBytes toBody(Object object);
 
   /**
    * Convert a list of parameters to an appropriate representation for HTTP transport.
@@ -36,5 +36,5 @@ public interface Converter {
    * @param parameters Parameters which make up the request body.
    * @return Representation of the specified parameters as bytes.
    */
-  TypedBytes fromParams(List<Parameter> parameters);
+  TypedBytes toBody(List<Parameter> parameters);
 }

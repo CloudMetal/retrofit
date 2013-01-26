@@ -80,7 +80,7 @@ public class RetrofitError extends RuntimeException {
       return null;
     }
     try {
-      return converter.to(body, successType);
+      return converter.fromBody(body, successType);
     } catch (ConversionException e) {
       throw new RuntimeException(e);
     }
@@ -92,7 +92,7 @@ public class RetrofitError extends RuntimeException {
       return null;
     }
     try {
-      return converter.to(body, type);
+      return converter.fromBody(body, type);
     } catch (ConversionException e) {
       throw new RuntimeException(e);
     }

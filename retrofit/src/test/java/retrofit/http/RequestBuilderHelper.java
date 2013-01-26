@@ -18,6 +18,7 @@ public class RequestBuilderHelper {
   public static final String URL = "http://example.com/";
 
   private boolean isSynchronous = true;
+  private boolean isMultipart = false;
   private String method;
   private boolean hasBody = false;
   private String path;
@@ -81,6 +82,11 @@ public class RequestBuilderHelper {
     return this;
   }
 
+  public RequestBuilderHelper setMultipart() {
+    isMultipart = true;
+    return this;
+  }
+
   public Request build() throws NoSuchMethodException, URISyntaxException {
     if (method == null) {
       throw new IllegalStateException("Method must be set.");
@@ -109,6 +115,7 @@ public class RequestBuilderHelper {
     methodInfo.pathQueryParams = queryParams.toArray(new QueryParam[queryParams.size()]);
     methodInfo.namedParams = namedParams.toArray(new String[namedParams.size()]);
     methodInfo.singleEntityArgumentIndex = singleEntityArgumentIndex;
+    methodInfo.isMultipart = isMultipart;
     methodInfo.loaded = true;
 
     return new RequestBuilder(GSON)

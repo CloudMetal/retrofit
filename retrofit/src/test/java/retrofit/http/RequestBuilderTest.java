@@ -1,13 +1,15 @@
 // Copyright 2013 Square, Inc.
 package retrofit.http;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import org.junit.Test;
 import retrofit.http.client.Request;
 import retrofit.io.TypedBytes;
 
 import static org.fest.assertions.api.Assertions.assertThat;
-import static retrofit.http.GsonConverter.JsonTypedBytes;
+import static retrofit.http.RequestBuilder.StringTypedBytes;
 import static retrofit.http.RequestBuilderHelper.URL;
 
 public class RequestBuilderTest {
@@ -20,6 +22,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void getWithPathParam() throws Exception {
@@ -32,6 +35,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void getWithQueryParam() throws Exception {
@@ -44,6 +48,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/?ping=pong");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void getWithPathAndQueryParam() throws Exception {
@@ -57,6 +62,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/?kit=kat");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void getWithPathAndQueryParamAsync() throws Exception {
@@ -71,6 +77,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/?kit=kat");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void normalPost() throws Exception {
@@ -83,6 +90,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void normalPostWithPathParam() throws Exception {
@@ -96,6 +104,7 @@ public class RequestBuilderTest {
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/");
     assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void normalPostWithBodyParam() throws Exception {
@@ -108,7 +117,8 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
-    assertBody(request, "{\"ping\":\"pong\"}");
+    assertTypedBytes(request.getBody(), "{\"ping\":\"pong\"}");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void normalPostWithMultipleBodyParam() throws Exception {
@@ -123,7 +133,9 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
-    assertBody(request, "{\"kit\":\"kat\",\"answer\":42,\"boom\":[\"goes\",\"the\",\"dynamite\"]}");
+    assertTypedBytes(request.getBody(),
+        "{\"kit\":\"kat\",\"answer\":42,\"boom\":[\"goes\",\"the\",\"dynamite\"]}");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void normalPostWithPathAndBodyParam() throws Exception {
@@ -137,7 +149,8 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/");
-    assertBody(request, "{\"kit\":\"kat\"}");
+    assertTypedBytes(request.getBody(), "{\"kit\":\"kat\"}");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void normalPostWithPathAndBodyParamAsync() throws Exception {
@@ -152,7 +165,8 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/");
-    assertBody(request, "{\"kit\":\"kat\"}");
+    assertTypedBytes(request.getBody(), "{\"kit\":\"kat\"}");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void singleEntity() throws Exception {
@@ -165,7 +179,8 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
-    assertBody(request, "[\"quick\",\"brown\",\"fox\"]");
+    assertTypedBytes(request.getBody(), "[\"quick\",\"brown\",\"fox\"]");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void singleEntityWithPathParams() throws Exception {
@@ -180,7 +195,8 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/kat/");
-    assertBody(request, "[\"quick\",\"brown\",\"fox\"]");
+    assertTypedBytes(request.getBody(), "[\"quick\",\"brown\",\"fox\"]");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
   @Test public void singleEntityWithPathParamsAsync() throws Exception {
@@ -196,25 +212,32 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("POST");
     assertThat(request.getHeaders()).isEmpty();
     assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/kat/");
-    assertBody(request, "[\"quick\",\"brown\",\"fox\"]");
+    assertTypedBytes(request.getBody(), "[\"quick\",\"brown\",\"fox\"]");
+    assertThat(request.getBodyParameters()).isNull();
   }
 
-  @Test public void multipartWithObjects() {
-    // TODO
+  @Test public void simpleMultipart() throws Exception {
+    Request request = new RequestBuilderHelper() //
+        .setMethod("POST") //
+        .setHasBody() //
+        .setPath("foo/bar/") //
+        .addNamedParam("ping", "pong") //
+        .addNamedParam("kit", new StringTypedBytes("kat")) //
+        .setMultipart() //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("POST");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
+    assertThat(request.getBody()).isNull();
+    assertThat(request.getBodyParameters()).hasSize(2);
+    assertTypedBytes(request.getBodyParameters().get("ping"), "pong");
+    assertTypedBytes(request.getBodyParameters().get("kit"), "kat");
   }
 
-  @Test public void multipartWithTypedBytes() {
-    // TODO
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-
-  private static void assertBody(Request request, String expected) {
-    TypedBytes body = request.getBody();
-    assertThat(body).isNotNull().isInstanceOf(JsonTypedBytes.class);
-    JsonTypedBytes jsonBody = (JsonTypedBytes) body;
-    assertThat(new String(jsonBody.jsonBytes)).isEqualTo(expected);
+  private static void assertTypedBytes(TypedBytes bytes, String expected) throws IOException {
+    assertThat(bytes).isNotNull();
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    bytes.writeTo(baos);
+    assertThat(new String(baos.toByteArray(), "UTF-8")).isEqualTo(expected);
   }
 }

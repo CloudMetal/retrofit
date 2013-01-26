@@ -1,6 +1,8 @@
 // Copyright 2012 Square, Inc.
 package retrofit.http;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
@@ -11,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import retrofit.http.client.Request;
+import retrofit.io.AbstractTypedBytes;
+import retrofit.io.MimeType;
 import retrofit.io.TypedBytes;
 
 import static retrofit.http.RestAdapter.UTF_8;
@@ -128,7 +132,7 @@ final class RequestBuilder {
     }
 
     TypedBytes body = null;
-    Map<String, TypedBytes> bodyParameters = new LinkedHashMap<String, TypedBytes>();
+    Map<String, TypedBytes> bodyParams = new LinkedHashMap<String, TypedBytes>();
     if (!methodInfo.restMethod.hasBody()) {
       if (!paramList.isEmpty()) {
         url.append("?");
@@ -141,16 +145,50 @@ final class RequestBuilder {
         }
       }
     } else if (!paramList.isEmpty()) {
-      body = converter.fromParams(paramList);
+      if (methodInfo.isMultipart) {
+        for (Parameter parameter : paramList) {
+          Object value = parameter.getValue();
+          TypedBytes typedBytes;
+          if (value instanceof TypedBytes) {
+            typedBytes = (TypedBytes) value;
+          } else {
+            typedBytes = new StringTypedBytes(value.toString());
+          }
+          bodyParams.put(parameter.getName(), typedBytes);
+        }
+      } else {
+        body = converter.toBody(paramList);
+      }
     } else if (methodInfo.singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
       Object singleEntity = args[methodInfo.singleEntityArgumentIndex];
       if (singleEntity instanceof TypedBytes) {
         body = (TypedBytes) singleEntity;
       } else {
-        body = converter.fromObject(singleEntity);
+        body = converter.toBody(singleEntity);
       }
     }
 
-    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body, null);
+    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body, bodyParams);
+  }
+
+  static class StringTypedBytes extends AbstractTypedBytes {
+    private final byte[] bytes;
+
+    StringTypedBytes(String string) {
+      super(new MimeType("text/plain", "txt"));
+      try {
+        bytes = string.getBytes("UTF-8");
+      } catch (UnsupportedEncodingException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override public int length() {
+      return bytes.length;
+    }
+
+    @Override public void writeTo(OutputStream out) throws IOException {
+      out.write(bytes);
+    }
   }
 }

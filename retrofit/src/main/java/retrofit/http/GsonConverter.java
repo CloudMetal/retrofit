@@ -32,7 +32,7 @@ public class GsonConverter implements Converter {
     this.gson = gson;
   }
 
-  @Override public Object to(byte[] body, Type type) throws ConversionException {
+  @Override public Object fromBody(byte[] body, Type type) throws ConversionException {
     try {
       InputStreamReader isr = new InputStreamReader(new ByteArrayInputStream(body), UTF_8);
       return gson.fromJson(isr, type);
@@ -43,7 +43,7 @@ public class GsonConverter implements Converter {
     }
   }
 
-  @Override public TypedBytes fromObject(Object object) {
+  @Override public TypedBytes toBody(Object object) {
     try {
       return new JsonTypedBytes(gson.toJson(object).getBytes(UTF_8));
     } catch (UnsupportedEncodingException e) {
@@ -51,7 +51,7 @@ public class GsonConverter implements Converter {
     }
   }
 
-  @Override public TypedBytes fromParams(List<Parameter> parameters) {
+  @Override public TypedBytes toBody(List<Parameter> parameters) {
     try {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       JsonWriter jsonWriter = new JsonWriter(new OutputStreamWriter(baos));

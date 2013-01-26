@@ -190,7 +190,7 @@ public class RestAdapter {
         Type type = methodDetails.type;
         if (statusCode >= 200 && statusCode < 300) { // 2XX == successful request
           try {
-            return converter.to(body, type);
+            return converter.fromBody(body, type);
           } catch (ConversionException e) {
             throw RetrofitError.conversionError(url, converter, statusCode, headers, body, type, e);
           }
