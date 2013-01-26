@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Named;
+import retrofit.io.TypedBytes;
 
 /** Cached details about an interface method. */
 final class RestMethodInfo {
@@ -29,6 +30,7 @@ final class RestMethodInfo {
   QueryParam[] pathQueryParams;
   String[] namedParams;
   int singleEntityArgumentIndex = NO_SINGLE_ENTITY;
+  boolean isMultipart = false;
 
   RestMethodInfo(Method method) {
     this.method = method;
@@ -39,7 +41,7 @@ final class RestMethodInfo {
     if (loaded) return;
 
     parseMethodAnnotations();
-    parseParameterAnnotations();
+    parseParameters();
 
     loaded = true;
   }
@@ -148,20 +150,36 @@ final class RestMethodInfo {
             method));
   }
 
-  /** Loads {@link #namedParams} and {@link #singleEntityArgumentIndex}. */
-  private void parseParameterAnnotations() {
-    Annotation[][] parameterAnnotations = method.getParameterAnnotations();
-    int count = parameterAnnotations.length;
+  /**
+   * Loads {@link #namedParams}, {@link #singleEntityArgumentIndex}, and {@link #isMultipart}. Must
+   * be called after {@link #parseMethodAnnotations()}}.
+   */
+  private void parseParameters() {
+    Class<?>[] parameterTypes = method.getParameterTypes();
+    Annotation[][] parameterAnnotationArrays = method.getParameterAnnotations();
+    int count = parameterAnnotationArrays.length;
     if (!isSynchronous) {
       count -= 1; // Callback is last argument when not a synchronous method.
     }
 
     String[] namedParams = new String[count];
     for (int i = 0; i < count; i++) {
-      for (Annotation parameterAnnotation : parameterAnnotations[i]) {
+      Class<?> parameterType = parameterTypes[i];
+      Annotation[] parameterAnnotations = parameterAnnotationArrays[i];
+      if (parameterAnnotations == null || parameterAnnotations.length == 0) {
+        throw new IllegalStateException("Argument " + i + " lacks annotation.");
+      }
+      for (Annotation parameterAnnotation : parameterAnnotations) {
         Class<? extends Annotation> annotationType = parameterAnnotation.annotationType();
         if (annotationType == Named.class) {
-          namedParams[i] = ((Named) parameterAnnotation).value();
+          String name = ((Named) parameterAnnotation).value();
+          namedParams[i] = name;
+          if (parameterType == TypedBytes.class) {
+            if (pathParams.contains(name)) {
+              throw new IllegalStateException("TypedBytes cannot be used as URL parameter.");
+            }
+            isMultipart = true;
+          }
         } else if (annotationType == SingleEntity.class) {
           if (singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
             throw new IllegalStateException(
@@ -169,10 +187,23 @@ final class RestMethodInfo {
           }
           singleEntityArgumentIndex = i;
         } else {
-          throw new IllegalArgumentException(
-              "Method argument " + i + " not annotated with Named or SingleEntity: " + method);
+          throw new IllegalStateException(
+              "Argument " + i + " has invalid annotation " + annotationType + ": " + method);
         }
       }
+    }
+    // Check for single entity + non-path parameters.
+    if (singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
+      for (String namedParam : namedParams) {
+        if (namedParam != null && !pathParams.contains(namedParam)) {
+          throw new IllegalStateException(
+              "Single entity and non-path parameters cannot both be present.");
+        }
+      }
+    }
+    if (!restMethod.hasBody() && (isMultipart || singleEntityArgumentIndex != NO_SINGLE_ENTITY)) {
+      throw new IllegalStateException(
+          "Non-body HTTP method cannot contain @SingleEntity or @TypedBytes.");
     }
     this.namedParams = namedParams;
   }

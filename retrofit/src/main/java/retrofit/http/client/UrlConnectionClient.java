@@ -2,6 +2,8 @@ package retrofit.http.client;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -12,6 +14,8 @@ import retrofit.io.TypedBytes;
 
 /** A {@link Client} which uses {@link HttpURLConnection} for request execution. */
 public class UrlConnectionClient implements Client {
+  private static final String CRLF = "\r\n";
+
   @Override public Response execute(Request request) throws IOException {
     HttpURLConnection connection = createRequest(request);
     prepareConnection(connection);
@@ -35,10 +39,31 @@ public class UrlConnectionClient implements Client {
 
     // Add the request body, if present.
     TypedBytes body = request.getBody();
+    Map<String, TypedBytes> bodyParameters = request.getBodyParameters();
     if (body != null) {
       connection.setDoOutput(true);
       connection.setRequestProperty("Content-Type", body.mimeType().mimeName());
       body.writeTo(connection.getOutputStream());
+    } else if (bodyParameters != null) {
+      String boundary = Long.toHexString(System.nanoTime());
+      connection.setDoOutput(true);
+      connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+      OutputStream outputStream = connection.getOutputStream();
+      PrintWriter writer = new PrintWriter(outputStream, true);
+      for (Map.Entry<String, TypedBytes> entry : bodyParameters.entrySet()) {
+        String key = entry.getKey();
+        TypedBytes value = entry.getValue();
+        writer.append("--").append(boundary);
+        writer.append(CRLF);
+        writer.append("Content-Disposition: form-data; name=\"").append(key).append("\"");
+        writer.append(CRLF);
+        writer.append("Content-Type: ").append(value.mimeType().mimeName());
+        writer.append(CRLF).append(CRLF).flush();
+        value.writeTo(outputStream);
+        writer.append(CRLF);
+      }
+      writer.append("--").append(boundary).append("--").flush();
+      writer.close();
     }
 
     return connection;

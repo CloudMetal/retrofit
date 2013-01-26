@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
@@ -15,12 +16,15 @@ import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.mime.MIME;
+import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.AbstractContentBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import retrofit.http.Header;
 import retrofit.io.TypedBytes;
+
+import static org.apache.http.entity.mime.HttpMultipartMode.BROWSER_COMPATIBLE;
 
 /** A {@link Client} which uses an implementation of Apache's {@link HttpClient}. */
 public class ApacheClient implements Client {
@@ -91,8 +95,15 @@ public class ApacheClient implements Client {
 
       // Add the content body, if any.
       TypedBytes body = request.getBody();
+      Map<String, TypedBytes> bodyParameters = request.getBodyParameters();
       if (body != null) {
         setEntity(new TypedBytesEntity(body));
+      } else if (bodyParameters != null) {
+        MultipartEntity entity = new MultipartEntity(BROWSER_COMPATIBLE);
+        for (Map.Entry<String, TypedBytes> entry : bodyParameters.entrySet()) {
+          String key = entry.getKey();
+          entity.addPart(key, new TypedBytesBody(entry.getValue(), key));
+        }
       }
     }
 

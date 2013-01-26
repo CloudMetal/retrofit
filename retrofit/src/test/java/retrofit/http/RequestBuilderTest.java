@@ -155,9 +155,57 @@ public class RequestBuilderTest {
     assertBody(request, "{\"kit\":\"kat\"}");
   }
 
-  // TODO test single entities
+  @Test public void singleEntity() throws Exception {
+    Request request = new RequestBuilderHelper() //
+        .setMethod("POST") //
+        .setHasBody() //
+        .setPath("foo/bar/") //
+        .addSingleEntityParam(Arrays.asList("quick", "brown", "fox")) //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("POST");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/");
+    assertBody(request, "[\"quick\",\"brown\",\"fox\"]");
+  }
 
-  // TODO test multi-part
+  @Test public void singleEntityWithPathParams() throws Exception {
+    Request request = new RequestBuilderHelper() //
+        .setMethod("POST") //
+        .setHasBody() //
+        .setPath("foo/bar/{ping}/{kit}/") //
+        .addNamedParam("ping", "pong") //
+        .addSingleEntityParam(Arrays.asList("quick", "brown", "fox")) //
+        .addNamedParam("kit", "kat") //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("POST");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/kat/");
+    assertBody(request, "[\"quick\",\"brown\",\"fox\"]");
+  }
+
+  @Test public void singleEntityWithPathParamsAsync() throws Exception {
+    Request request = new RequestBuilderHelper() //
+        .setMethod("POST") //
+        .setHasBody() //
+        .setPath("foo/bar/{ping}/{kit}/") //
+        .addNamedParam("ping", "pong") //
+        .addSingleEntityParam(Arrays.asList("quick", "brown", "fox")) //
+        .addNamedParam("kit", "kat") //
+        .setAsynchronous() //
+        .build();
+    assertThat(request.getMethod()).isEqualTo("POST");
+    assertThat(request.getHeaders()).isEmpty();
+    assertThat(request.getUrl()).isEqualTo(URL + "foo/bar/pong/kat/");
+    assertBody(request, "[\"quick\",\"brown\",\"fox\"]");
+  }
+
+  @Test public void multipartWithObjects() {
+    // TODO
+  }
+
+  @Test public void multipartWithTypedBytes() {
+    // TODO
+  }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////////////////

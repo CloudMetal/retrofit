@@ -5,8 +5,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import retrofit.http.client.Request;
 import retrofit.io.TypedBytes;
@@ -126,6 +128,7 @@ final class RequestBuilder {
     }
 
     TypedBytes body = null;
+    Map<String, TypedBytes> bodyParameters = new LinkedHashMap<String, TypedBytes>();
     if (!methodInfo.restMethod.hasBody()) {
       if (!paramList.isEmpty()) {
         url.append("?");
@@ -148,6 +151,6 @@ final class RequestBuilder {
       }
     }
 
-    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body);
+    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body, null);
   }
 }

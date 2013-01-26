@@ -3,7 +3,7 @@ package retrofit.http;
 
 import java.lang.reflect.Method;
 
-public class TestingUtils {
+class TestingUtils {
   public static Method getMethod(Class c, String name) {
     Method[] methods = c.getDeclaredMethods();
     for (Method method : methods) {

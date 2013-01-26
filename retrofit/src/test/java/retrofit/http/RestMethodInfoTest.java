@@ -11,6 +11,7 @@ import java.util.Set;
 import javax.inject.Named;
 import org.junit.Ignore;
 import org.junit.Test;
+import retrofit.io.TypedBytes;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -33,177 +34,302 @@ public class RestMethodInfoTest {
     expectParams("foo/bar/{taco_shell}", "taco_shell");
   }
 
+  private static void expectParams(String path, String... expected) {
+    Set<String> calculated = RestMethodInfo.parsePathParameters(path);
+    assertThat(calculated).hasSize(expected.length);
+    if (expected.length > 0) {
+      assertThat(calculated).containsExactly(expected);
+    }
+  }
+
   @Test public void concreteCallbackTypes() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "a");
+    class Example {
+      @GET("foo") void a(ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void concreteCallbackTypesWithParams() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "b");
+    class Example {
+      @GET("foo") void a(@Named("id") String id, ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void genericCallbackTypes() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "c");
+    class Example {
+      @GET("foo") void a(Callback<Response> cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void genericCallbackTypesWithParams() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "d");
+    class Example {
+      @GET("foo") void a(@Named("id") String id, Callback<Response> c) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void wildcardGenericCallbackTypes() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "e");
+    class Example {
+      @GET("foo") void a(Callback<? extends Response> c) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void genericCallbackWithGenericType() {
-    Type expected = new TypeToken<List<String>>() {}.getType();
-    Method method = TestingUtils.getMethod(TypeExamples.class, "f");
+    class Example {
+      @GET("foo") void a(Callback<List<String>> c) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
+
+    Type expected = new TypeToken<List<String>>() {}.getType();
     assertThat(methodInfo.type).isEqualTo(expected);
   }
 
   @Ignore // TODO support this case!
   @Test public void extendingGenericCallback() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "g");
+    class Example {
+      @GET("foo") void a(ExtendingCallback<Response> callback) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isFalse();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void synchronousResponse() {
-    Type expected = Response.class;
-    Method method = TestingUtils.getMethod(TypeExamples.class, "h");
+    class Example {
+      @GET("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isTrue();
-    assertThat(methodInfo.type).isEqualTo(expected);
+    assertThat(methodInfo.type).isEqualTo(Response.class);
   }
 
   @Test public void synchronousGenericResponse() {
-    Type expected = new TypeToken<List<String>>() {}.getType();
-    Method method = TestingUtils.getMethod(TypeExamples.class, "i");
+    class Example {
+      @GET("foo") List<String> a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
     assertThat(methodInfo.isSynchronous).isTrue();
+
+    Type expected = new TypeToken<List<String>>() {}.getType();
     assertThat(methodInfo.type).isEqualTo(expected);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void missingCallbackTypes() {
-    Method method = TestingUtils.getMethod(TypeExamples.class, "j");
-    RestMethodInfo methodInfo = new RestMethodInfo(method);
-    assertThat(methodInfo.isSynchronous).isFalse();
-    methodInfo.init();
+    class Example {
+      @GET("foo") void a(@Named("id") String id) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    new RestMethodInfo(method);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void synchronousWithAsyncCallback() {
-    Method method = TestingUtils.getMethod(TypeExamples.class, "k");
-    RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
+    class Example {
+      @GET("foo") Response a(Callback<Response> callback) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    new RestMethodInfo(method);
   }
 
   @Test(expected = IllegalStateException.class)
   public void lackingMethod() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "a");
+    class Example {
+      Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
   }
 
   @Test public void deleteMethod() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "b");
+    class Example {
+      @DELETE("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("DELETE");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
   @Test public void getMethod() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "c");
+    class Example {
+      @GET("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("GET");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
   @Test public void headMethod() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "d");
+    class Example {
+      @HEAD("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("HEAD");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
   @Test public void postMethod() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "e");
+    class Example {
+      @POST("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("POST");
     assertThat(methodInfo.restMethod.hasBody()).isTrue();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
   @Test public void putMethod() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "f");
+    class Example {
+      @PUT("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("PUT");
     assertThat(methodInfo.restMethod.hasBody()).isTrue();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
+  @RestMethod("CUSTOM1")
+  @Target(METHOD) @Retention(RUNTIME)
+  private @interface CUSTOM1 {
+    String value();
+  }
+
   @Test public void custom1Method() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "g");
+    class Example {
+      @CUSTOM1("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("CUSTOM1");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
+  @RestMethod(value = "CUSTOM2", hasBody = true)
+  @Target(METHOD) @Retention(RUNTIME)
+  private @interface CUSTOM2 {
+    String value();
+  }
+
   @Test public void custom2Method() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "h");
+    class Example {
+      @CUSTOM2("foo") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.restMethod.value()).isEqualTo("CUSTOM2");
     assertThat(methodInfo.restMethod.hasBody()).isTrue();
     assertThat(methodInfo.path).isEqualTo("foo");
   }
 
   @Test public void singleQueryParam() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "i");
+    class Example {
+      @GET("foo")
+      @QueryParam(name = "a", value = "b")
+      Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.pathQueryParams).hasSize(1);
     QueryParam param = methodInfo.pathQueryParams[0];
     assertThat(param.name()).isEqualTo("a");
@@ -211,9 +337,21 @@ public class RestMethodInfoTest {
   }
 
   @Test public void multipleQueryParam() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "j");
+    class Example {
+      @GET("foo")
+      @QueryParams({
+          @QueryParam(name = "a", value = "b"),
+          @QueryParam(name = "c", value = "d")
+      })
+      Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.pathQueryParams).hasSize(2);
     QueryParam param1 = methodInfo.pathQueryParams[0];
     assertThat(param1.name()).isEqualTo("a");
@@ -225,227 +363,355 @@ public class RestMethodInfoTest {
 
   @Test(expected = IllegalStateException.class)
   public void bothQueryParamAnnotations() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "k");
-    RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
-  }
+    class Example {
+      @GET("foo")
+      @QueryParam(name = "a", value = "b")
+      @QueryParams({
+          @QueryParam(name = "a", value = "b"),
+          @QueryParam(name = "c", value = "d")
+      })
+      Response a() {
+        return null;
+      }
+    }
 
-  @Test(expected = IllegalStateException.class)
-  public void missingMethodWithQueryParam() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "l");
-    RestMethodInfo methodInfo = new RestMethodInfo(method);
-    methodInfo.init();
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void missingMethodWithQueryParams() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "m");
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
   }
 
   @Test(expected = IllegalStateException.class)
   public void emptyQueryParams() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "n");
+    class Example {
+      @GET("foo")
+      @QueryParams({})
+      Response a() {
+        return null;
+      }
+    }
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
   }
 
   @Test public void noQueryParamsNonNull() {
-    Method method = TestingUtils.getMethod(AnnotationExamples.class, "b");
+    class Example {
+      @GET("") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.pathQueryParams).isEmpty();
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void emptyParams() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "a");
+    class Example {
+      @GET("") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).isEmpty();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void singleParam() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "b");
+    class Example {
+      @GET("") Response a(@Named("a") String a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(1).containsSequence("a");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void multipleParams() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "c");
+    class Example {
+      @GET("") Response a(@Named("a") String a, @Named("b") String b, @Named("c") String c) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(3).containsSequence("a", "b", "c");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void emptyParamsWithCallback() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "d");
+    class Example {
+      @GET("") void a(ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).isEmpty();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void singleParamWithCallback() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "e");
+    class Example {
+      @GET("") void a(@Named("a") String a, ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(1).containsSequence("a");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void multipleParamsWithCallback() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "f");
+    class Example {
+      @GET("") void a(@Named("a") String a, @Named("b") String b, ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(2).containsSequence("a", "b");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(NO_SINGLE_ENTITY);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void singleEntity() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "g");
+    class Example {
+      @PUT("") Response a(@SingleEntity Object o) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(1);
     assertThat(methodInfo.namedParams[0]).isNull();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(0);
+    assertThat(methodInfo.isMultipart).isFalse();
+  }
+
+  @Test public void singleEntityTypedBytes() {
+    class Example {
+      @PUT("") Response a(@SingleEntity TypedBytes o) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.namedParams).hasSize(1);
+    assertThat(methodInfo.namedParams[0]).isNull();
+    assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(0);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void singleEntityWithCallback() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "h");
+    class Example {
+      @PUT("") void a(@SingleEntity Object o, ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(1);
     assertThat(methodInfo.namedParams[0]).isNull();
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(0);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test(expected = IllegalStateException.class)
   public void twoSingleEntities() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "i");
+    class Example {
+      @PUT("") Response a(@SingleEntity int o1, @SingleEntity int o2) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
   }
 
   @Test public void singleEntityWithNamed() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "j");
+    class Example {
+      @PUT("{a}/{c}") Response a(@Named("a") int a, @SingleEntity int b, @Named("c") int c) {
+        return null;
+      }
+    }
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
+
     assertThat(methodInfo.namedParams).hasSize(3).containsSequence("a", null, "c");
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(1);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
   @Test public void singleEntityWithNamedAndCallback() {
-    Method method = TestingUtils.getMethod(ParameterExamples.class, "k");
+    class Example {
+      @PUT("{a}") void a(@Named("a") int a, @SingleEntity int b, ResponseCallback cb) {
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
     RestMethodInfo methodInfo = new RestMethodInfo(method);
     methodInfo.init();
-    assertThat(methodInfo.namedParams).hasSize(3).containsSequence("a", null, "c");
+
+    assertThat(methodInfo.namedParams).hasSize(2).containsSequence("a", null);
     assertThat(methodInfo.singleEntityArgumentIndex).isEqualTo(1);
+    assertThat(methodInfo.isMultipart).isFalse();
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////////
-
-  private static void expectParams(String path, String... expected) {
-    Set<String> calculated = RestMethodInfo.parsePathParameters(path);
-    assertThat(calculated).hasSize(expected.length);
-    if (expected.length > 0) {
-        assertThat(calculated).containsExactly(expected);
+  @Test(expected = IllegalStateException.class)
+  public void nonPathParamAndSingleEntity() {
+    class Example {
+      @PUT("") Response a(@Named("a") int a, @SingleEntity int b) {
+        return null;
+      }
     }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
   }
 
-  @SuppressWarnings("UnusedDeclaration") // Accessed reflectively.
-  interface TypeExamples {
-    // Asynchronous response delivery.
-    @GET("foo") void a(ResponseCallback c);
-    @GET("foo") void b(@Named("id") String id, ResponseCallback c);
-    @GET("foo") void c(Callback<Response> c);
-    @GET("foo") void d(@Named("id") String id, Callback<Response> c);
-    @GET("foo") void e(Callback<? extends Response> c);
-    @GET("foo") void f(Callback<List<String>> c);
-    @GET("foo") void g(ExtendingCallback<Response> callback);
+  @Test(expected = IllegalStateException.class)
+  public void typedBytesUrlParam() {
+    class Example {
+      @GET("{a}") Response a(@Named("a") TypedBytes m) {
+        return null;
+      }
+    }
 
-    // Synchronous response delivery.
-    @GET("foo") Response h();
-    @GET("foo") List<String> i();
-
-    // Invalid response delivery.
-    @GET("foo") void j(@Named("id") String id);
-    @GET("foo") Response k(Callback<Response> callback);
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
   }
 
-  @RestMethod("CUSTOM1")
-  @Target(METHOD) @Retention(RUNTIME)
-  @interface CUSTOM1 {
-    String value();
-  }
-  @RestMethod(value = "CUSTOM2", hasBody = true)
-  @Target(METHOD) @Retention(RUNTIME)
-  @interface CUSTOM2 {
-    String value();
-  }
+  @Test(expected = IllegalStateException.class)
+  public void pathParamNonPathParamAndTypedBytes() {
+    class Example {
+      @PUT("{a}") Response a(@Named("a") int a, @Named("b") int b, @SingleEntity int c) {
+        return null;
+      }
+    }
 
-  @SuppressWarnings("UnusedDeclaration") // Accessed reflectively.
-  interface AnnotationExamples {
-    Response a(); // Invalid, no method annotation.
-    @DELETE("foo") Response b();
-    @GET("foo") Response c();
-    @HEAD("foo") Response d();
-    @POST("foo") Response e();
-    @PUT("foo") Response f();
-    @CUSTOM1("foo") Response g();
-    @CUSTOM2("foo") Response h();
-
-    @GET("foo")
-    @QueryParam(name = "a", value = "b")
-    Response i();
-
-    @GET("foo")
-    @QueryParams({
-        @QueryParam(name = "a", value = "b"),
-        @QueryParam(name = "c", value = "d")
-    })
-    Response j();
-
-    @GET("foo")
-    @QueryParam(name = "a", value = "b")
-    @QueryParams({
-        @QueryParam(name = "a", value = "b"),
-        @QueryParam(name = "c", value = "d")
-    })
-    Response k(); // Invalid, both query param annotations.
-
-    @QueryParam(name = "a", value = "b")
-    Response l(); // Invalid, no method annotation.
-
-    @QueryParams({
-        @QueryParam(name = "a", value = "b"),
-        @QueryParam(name = "c", value = "d")
-    })
-    Response m(); // Invalid, no method annotation.
-
-    @GET("foo")
-    @QueryParams({})
-    Response n(); // Invalid, empty query params list.
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
   }
 
-  @SuppressWarnings("UnusedDeclaration") // Accessed reflectively.
-  interface ParameterExamples {
-    @GET("") Response a();
-    @GET("") Response b(@Named("a") String a);
-    @GET("") Response c(@Named("a") String a, @Named("b") String b, @Named("c") String c);
-    @GET("") void d(ResponseCallback cb);
-    @GET("") void e(@Named("a") String a, ResponseCallback cb);
-    @GET("") void f(@Named("a") String a, @Named("b") String b, ResponseCallback cb);
-    @GET("") Response g(@SingleEntity Object o);
-    @GET("") void h(@SingleEntity Object o, ResponseCallback cb);
-    @GET("") Response i(@SingleEntity int o1, @SingleEntity int o2); // Invalid, two entities.
-    @GET("") Response j(@Named("a") int a, @SingleEntity int b, @Named("c") int c);
-    @GET("") void k(@Named("a") int a, @SingleEntity int b, @Named("c") int c, ResponseCallback cb);
+  @Test(expected = IllegalStateException.class)
+  public void parameterWithoutAnnotation() {
+    class Example {
+      @GET("") Response a(String a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void nonBodyHttpMethodWithSingleEntity() {
+    class Example {
+      @GET("") Response a(@SingleEntity Object o) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void nonBodyHttpMethodWithTypedBytes() {
+    class Example {
+      @GET("") Response a(@Named("a") TypedBytes a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+  }
+
+  @Test public void simpleMultipart() {
+    class Example {
+      @PUT("") Response a(@Named("a") TypedBytes a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.isMultipart).isTrue();
+  }
+
+  @Test public void twoTypedBytesMultipart() {
+    class Example {
+      @PUT("") Response a(@Named("a") TypedBytes a, @Named("b") TypedBytes b) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.isMultipart).isTrue();
+  }
+
+  @Test public void twoTypesMultipart() {
+    class Example {
+      @PUT("") Response a(@Named("a") TypedBytes a, @Named("b") int b) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+
+    assertThat(methodInfo.isMultipart).isTrue();
   }
 }
