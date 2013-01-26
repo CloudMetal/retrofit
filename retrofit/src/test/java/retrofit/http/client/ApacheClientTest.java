@@ -7,14 +7,20 @@ import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
+import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.junit.Test;
 import retrofit.http.Header;
 import retrofit.http.StringTypedBytes;
 import retrofit.io.TypedBytes;
 
 import static org.fest.assertions.api.Assertions.assertThat;
+import static retrofit.http.client.ApacheClient.TypedBytesEntity;
 
 public class ApacheClientTest {
   @Test public void get() {
@@ -80,6 +86,21 @@ public class ApacheClientTest {
     org.apache.http.Header foo = apacheRequest.getFirstHeader("foo");
     assertThat(foo).isNotNull();
     assertThat(foo.getValue()).isEqualTo("bar");
+  }
+
+  @Test public void response() throws Exception {
+    StatusLine statusLine = new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK");
+    HttpResponse apacheResponse = new BasicHttpResponse(statusLine);
+    apacheResponse.setEntity(new TypedBytesEntity(new StringTypedBytes("hello")));
+    apacheResponse.addHeader("foo", "bar");
+    apacheResponse.addHeader("kit", "kat");
+    Response response = ApacheClient.parseResponse(apacheResponse);
+
+    assertThat(response.getStatus()).isEqualTo(200);
+    assertThat(response.getReason()).isEqualTo("OK");
+    assertThat(response.getHeaders()).hasSize(2) //
+        .containsExactly(new Header("foo", "bar"), new Header("kit", "kat"));
+    assertBytes(response.getBody(), "hello");
   }
 
   private static void assertBytes(byte[] bytes, String expected) throws Exception {

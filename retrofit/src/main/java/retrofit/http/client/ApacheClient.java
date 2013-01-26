@@ -157,7 +157,7 @@ public class ApacheClient implements Client {
   }
 
   /** Container class for passing an entire {@link TypedBytes} as an HTTP request. */
-  private static class TypedBytesEntity extends AbstractHttpEntity {
+  static class TypedBytesEntity extends AbstractHttpEntity {
     private final TypedBytes typedBytes;
 
     TypedBytesEntity(TypedBytes typedBytes) {
