@@ -15,7 +15,7 @@ public class StringTypedBytes extends AbstractTypedBytes {
     try {
       bytes = string.getBytes("UTF-8");
     } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
+      throw new AssertionError(e);
     }
   }
 

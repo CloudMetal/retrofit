@@ -5,8 +5,7 @@ import java.lang.reflect.Method;
 
 public class TestingUtils {
   public static Method getMethod(Class c, String name) {
-    Method[] methods = c.getDeclaredMethods();
-    for (Method method : methods) {
+    for (Method method : c.getDeclaredMethods()) {
       if (method.getName().equals(name)) {
         return method;
       }
