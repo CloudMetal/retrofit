@@ -99,7 +99,7 @@ public class RequestBuilderHelper {
     if (isSynchronous) {
       method = getClass().getDeclaredMethod("dummySync");
     } else {
-      method = getClass().getDeclaredMethod("dummyAsync", ResponseCallback.class);
+      method = getClass().getDeclaredMethod("dummyAsync", Callback.class);
       args.add(mock(Callback.class));
     }
 
@@ -130,6 +130,6 @@ public class RequestBuilderHelper {
     return null;
   }
 
-  private void dummyAsync(ResponseCallback cb) {
+  private void dummyAsync(Callback<Object> cb) {
   }
 }

@@ -714,4 +714,13 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.isMultipart).isTrue();
   }
+
+  private static class Response {
+  }
+
+  private static interface ResponseCallback extends Callback<Response> {
+  }
+
+  private static interface ExtendingCallback<T> extends Callback<T> {
+  }
 }

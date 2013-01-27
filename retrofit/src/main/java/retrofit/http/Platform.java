@@ -1,6 +1,5 @@
 package retrofit.http;
 
-import android.os.Build;
 import android.os.Process;
 import com.google.gson.Gson;
 import java.util.concurrent.Executor;
@@ -12,12 +11,10 @@ import retrofit.android.AndroidApacheClient;
 import retrofit.android.MainThreadExecutor;
 import retrofit.http.client.ApacheClient;
 import retrofit.http.client.Client;
-import retrofit.http.client.UrlConnectionClient;
 
-import static android.os.Build.VERSION_CODES.GINGERBREAD;
 import static android.os.Process.THREAD_PRIORITY_BACKGROUND;
-import static retrofit.http.Utils.SynchronousExecutor;
 import static retrofit.http.RestAdapter.THREAD_PREFIX;
+import static retrofit.http.Utils.SynchronousExecutor;
 
 abstract class Platform {
   private static final Platform PLATFORM = findPlatform();
@@ -76,12 +73,7 @@ abstract class Platform {
   /** Provides sane defaults for operation on Android. */
   private static class Android extends Platform {
     @Override Provider<Client> defaultClient() {
-      final Client client;
-      if (Build.VERSION.SDK_INT < GINGERBREAD) {
-        client = new AndroidApacheClient();
-      } else {
-        client = new UrlConnectionClient();
-      }
+      final Client client = new AndroidApacheClient();
       return new Provider<Client>() {
         @Override public Client get() {
           return client;
