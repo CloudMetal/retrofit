@@ -1,3 +1,4 @@
+// Copyright 2013 Square, Inc.
 package retrofit.http.client;
 
 import java.io.ByteArrayInputStream;
@@ -87,23 +88,26 @@ public class ApacheClient implements Client {
       setURI(URI.create(request.getUrl()));
 
       // Add all headers.
-      List<Header> headers = request.getHeaders();
-      for (Header header : headers) {
+      for (Header header : request.getHeaders()) {
         addHeader(new BasicHeader(header.getName(), header.getValue()));
       }
 
       // Add the content body, if any.
-      TypedBytes body = request.getBody();
-      Map<String, TypedBytes> bodyParameters = request.getBodyParameters();
-      if (body != null) {
-        setEntity(new TypedBytesEntity(body));
-      } else if (bodyParameters != null) {
-        MultipartEntity entity = new MultipartEntity(BROWSER_COMPATIBLE);
-        for (Map.Entry<String, TypedBytes> entry : bodyParameters.entrySet()) {
-          String key = entry.getKey();
-          entity.addPart(key, new TypedBytesBody(entry.getValue(), key));
+      if (!request.isMultipart()) {
+        TypedBytes body = request.getBody();
+        if (body != null) {
+          setEntity(new TypedBytesEntity(body));
         }
-        setEntity(entity);
+      } else {
+        Map<String, TypedBytes> bodyParameters = request.getBodyParameters();
+        if (bodyParameters != null && !bodyParameters.isEmpty()) {
+          MultipartEntity entity = new MultipartEntity(BROWSER_COMPATIBLE);
+          for (Map.Entry<String, TypedBytes> entry : bodyParameters.entrySet()) {
+            String key = entry.getKey();
+            entity.addPart(key, new TypedBytesBody(entry.getValue(), key));
+          }
+          setEntity(entity);
+        }
       }
     }
 

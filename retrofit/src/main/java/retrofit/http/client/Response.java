@@ -16,19 +16,16 @@ public final class Response {
       throw new IllegalArgumentException("Invalid status code: " + status);
     }
     if (reason == null) {
-      throw new IllegalArgumentException("Reason must not be null.");
+      throw new NullPointerException("Reason must not be null.");
     }
     if (headers == null) {
-      throw new IllegalArgumentException("Headers must not be null.");
-    }
-    if (body == null) {
-      throw new IllegalArgumentException("Body must not be null.");
+      throw new NullPointerException("Headers must not be null.");
     }
 
-    this.body = body;
     this.status = status;
     this.reason = reason;
     this.headers = Collections.unmodifiableList(headers);
+    this.body = body;
   }
 
   /** Status line code. */

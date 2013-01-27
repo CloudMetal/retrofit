@@ -88,7 +88,7 @@ final class RestMethodInfo {
 
     if (restMethod == null) {
       throw new IllegalStateException(
-          "Method not annotated with GET, POST, PUT, or DELETE: " + method);
+          "Method " + method + " not annotated with request type (e.g., GET, POST).");
     }
     if (pathQueryParams == null) {
       pathQueryParams = new QueryParam[0];

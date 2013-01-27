@@ -11,32 +11,32 @@ public final class Request {
   private final String method;
   private final String url;
   private final List<Header> headers;
+  private final boolean isMultipart;
   private final TypedBytes body;
   private Map<String, TypedBytes> bodyParameters;
 
-  public Request(String method, String url, List<Header> headers, TypedBytes body,
-      Map<String, TypedBytes> bodyParameters) {
+  public Request(String method, String url, List<Header> headers, boolean isMultipart,
+      TypedBytes body, Map<String, TypedBytes> bodyParameters) {
     if (method == null) {
-      throw new IllegalArgumentException("Method must not be null.");
+      throw new NullPointerException("Method must not be null.");
     }
     if (url == null) {
-      throw new IllegalArgumentException("Url must not be null.");
+      throw new NullPointerException("URL must not be null.");
     }
     this.method = method;
     this.url = url;
 
     if (headers == null) {
-      headers = Collections.emptyList();
+      this.headers = Collections.emptyList();
+    } else {
+      this.headers = Collections.unmodifiableList(headers);
     }
-    this.headers = Collections.unmodifiableList(headers);
 
+    this.isMultipart = isMultipart;
     this.body = body;
+
     if (bodyParameters != null) {
-      if (bodyParameters.size() == 0) {
-        bodyParameters = null;
-      } else {
-        bodyParameters = Collections.unmodifiableMap(bodyParameters);
-      }
+      bodyParameters = Collections.unmodifiableMap(bodyParameters);
     }
     this.bodyParameters = bodyParameters;
   }
@@ -51,24 +51,25 @@ public final class Request {
     return url;
   }
 
-  /**
-   * An unmodifiable list of headers.
-   * <p/>
-   * May be empty, never {@code null}.
-   */
+  /** Returns an unmodifiable list of headers.empty, never {@code null}. */
   public List<Header> getHeaders() {
     return headers;
   }
 
-  /** Request body. May be {@code null}. */
+  /** {@code true} if the request body is multipart. */
+  public boolean isMultipart() {
+    return isMultipart;
+  }
+
+  /**
+   * Returns the request body for non-multipart requests, or {@code null} if the request has no
+   * body.
+   */
   public TypedBytes getBody() {
     return body;
   }
 
-  /**
-   * Unmodifiable map of additional body parameters. When not {@code null} this indicates a
-   * multi-part request is required.  May be {@code null} but never empty.
-   */
+  /** Unmodifiable map of additional body parameters for multipart requests. */
   public Map<String, TypedBytes> getBodyParameters() {
     return bodyParameters;
   }

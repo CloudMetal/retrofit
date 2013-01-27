@@ -4,7 +4,6 @@ package retrofit.http;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -68,7 +67,7 @@ final class RequestBuilder {
 
     // Add query parameter(s), if specified.
     for (QueryParam annotation : methodInfo.pathQueryParams) {
-      params.add(new Parameter(annotation.name(), String.class, annotation.value()));
+      params.add(new Parameter(annotation.name(), annotation.value(), String.class));
     }
 
     // Add arguments as parameters.
@@ -78,40 +77,38 @@ final class RequestBuilder {
       Object arg = args[i];
       if (arg == null) continue;
       if (i != singleEntityArgumentIndex) {
-        params.add(new Parameter(pathNamedParams[i], arg.getClass(), arg));
+        params.add(new Parameter(pathNamedParams[i], arg, arg.getClass()));
       }
     }
 
     return params;
   }
 
-  Request build() throws URISyntaxException {
+  Request build() {
     // Alter parameter list if path parameters are present.
     Set<String> pathParams = new LinkedHashSet<String>(methodInfo.pathParams);
     List<Parameter> paramList = createParamList();
     String replacedPath = methodInfo.path;
-    if (!pathParams.isEmpty()) {
-      for (String pathParam : pathParams) {
-        Parameter found = null;
-        for (Parameter param : paramList) {
-          if (param.getName().equals(pathParam)) {
-            found = param;
-            break;
-          }
+    for (String pathParam : pathParams) {
+      Parameter found = null;
+      for (Parameter param : paramList) {
+        if (param.getName().equals(pathParam)) {
+          found = param;
+          break;
         }
-        if (found != null) {
-          String value;
-          try {
-            value = URLEncoder.encode(String.valueOf(found.getValue()), UTF_8);
-          } catch (UnsupportedEncodingException e) {
-            throw new AssertionError(e);
-          }
-          replacedPath = replacedPath.replace("{" + found.getName() + "}", value);
-          paramList.remove(found);
-        } else {
-          throw new IllegalArgumentException(
-              "URL param " + pathParam + " has no matching method @Named param.");
+      }
+      if (found != null) {
+        String value;
+        try {
+          value = URLEncoder.encode(String.valueOf(found.getValue()), UTF_8);
+        } catch (UnsupportedEncodingException e) {
+          throw new AssertionError(e);
         }
+        replacedPath = replacedPath.replace("{" + found.getName() + "}", value);
+        paramList.remove(found);
+      } else {
+        throw new IllegalArgumentException(
+            "URL param " + pathParam + " has no matching method @Named param.");
       }
     }
 
@@ -134,15 +131,10 @@ final class RequestBuilder {
     TypedBytes body = null;
     Map<String, TypedBytes> bodyParams = new LinkedHashMap<String, TypedBytes>();
     if (!methodInfo.restMethod.hasBody()) {
-      if (!paramList.isEmpty()) {
-        url.append("?");
-        for (int i = 0, count = paramList.size(); i < count; i++) {
-          Parameter nonPathParam = paramList.get(i);
-          url.append(nonPathParam.getName()).append("=").append(nonPathParam.getValue());
-          if (i < count - 1) {
-            url.append("&");
-          }
-        }
+      for (int i = 0, count = paramList.size(); i < count; i++) {
+        url.append((i == 0) ? '?' : '&');
+        Parameter nonPathParam = paramList.get(i);
+        url.append(nonPathParam.getName()).append("=").append(nonPathParam.getValue());
       }
     } else if (!paramList.isEmpty()) {
       if (methodInfo.isMultipart) {
@@ -168,7 +160,8 @@ final class RequestBuilder {
       }
     }
 
-    return new Request(methodInfo.restMethod.value(), url.toString(), headers, body, bodyParams);
+    return new Request(methodInfo.restMethod.value(), url.toString(), headers,
+        methodInfo.isMultipart, body, bodyParams);
   }
 
   static class StringTypedBytes extends AbstractTypedBytes {

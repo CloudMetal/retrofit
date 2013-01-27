@@ -23,12 +23,14 @@ import static org.fest.assertions.api.Assertions.assertThat;
 import static retrofit.http.client.ApacheClient.TypedBytesEntity;
 
 public class ApacheClientTest {
+  private static final String HOST = "http://example.com";
+
   @Test public void get() {
-    Request request = new Request("GET", "http://example.com/foo/bar/?kit=kat", null, null, null);
+    Request request = new Request("GET", HOST + "/foo/bar/?kit=kat", null, false, null, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getMethod()).isEqualTo("GET");
-    assertThat(apacheRequest.getURI().toString()).isEqualTo("http://example.com/foo/bar/?kit=kat");
+    assertThat(apacheRequest.getURI().toString()).isEqualTo(HOST + "/foo/bar/?kit=kat");
     assertThat(apacheRequest.getAllHeaders()).isEmpty();
 
     if (apacheRequest instanceof HttpEntityEnclosingRequest) {
@@ -39,11 +41,11 @@ public class ApacheClientTest {
 
   @Test public void post() throws Exception {
     TypedBytes body = new StringTypedBytes("hi");
-    Request request = new Request("POST", "http://example.com/foo/bar/", null, body, null);
+    Request request = new Request("POST", HOST + "/foo/bar/", null, false, body, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getMethod()).isEqualTo("POST");
-    assertThat(apacheRequest.getURI().toString()).isEqualTo("http://example.com/foo/bar/");
+    assertThat(apacheRequest.getURI().toString()).isEqualTo(HOST + "/foo/bar/");
     assertThat(apacheRequest.getAllHeaders()).hasSize(0);
 
     assertThat(apacheRequest).isInstanceOf(HttpEntityEnclosingRequest.class);
@@ -58,11 +60,11 @@ public class ApacheClientTest {
     Map<String, TypedBytes> bodyParams = new LinkedHashMap<String, TypedBytes>();
     bodyParams.put("foo", new StringTypedBytes("bar"));
     bodyParams.put("ping", new StringTypedBytes("pong"));
-    Request request = new Request("POST", "http://example.com/that/", null, null, bodyParams);
+    Request request = new Request("POST", HOST + "/that/", null, true, null, bodyParams);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getMethod()).isEqualTo("POST");
-    assertThat(apacheRequest.getURI().toString()).isEqualTo("http://example.com/that/");
+    assertThat(apacheRequest.getURI().toString()).isEqualTo(HOST + "/that/");
     assertThat(apacheRequest.getAllHeaders()).hasSize(0);
 
     assertThat(apacheRequest).isInstanceOf(HttpEntityEnclosingRequest.class);
@@ -76,7 +78,7 @@ public class ApacheClientTest {
     List<Header> headers = new ArrayList<Header>();
     headers.add(new Header("kit", "kat"));
     headers.add(new Header("foo", "bar"));
-    Request request = new Request("GET", "http://example.com/this/", headers, null, null);
+    Request request = new Request("GET", HOST + "/this/", headers, false, null, null);
     HttpUriRequest apacheRequest = ApacheClient.createRequest(request);
 
     assertThat(apacheRequest.getAllHeaders()).hasSize(2);

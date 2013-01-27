@@ -10,7 +10,7 @@ import java.lang.reflect.Type;
  * <ul>
  * <li>Named replacement in the relative URL path.</li>
  * <li>As a URL query parameter.</li>
- * <li>As a POST/PUT body parameter.</li>
+ * <li>As a POST/PUT body.</li>
  * </ul>
  */
 public final class Parameter {
@@ -18,9 +18,9 @@ public final class Parameter {
   private final Type type;
   private final Object value;
 
-  public Parameter(String name, Type type, Object value) {
+  public Parameter(String name, Object value, Type valueType) {
     this.name = name;
-    this.type = type;
+    this.type = valueType;
     this.value = value;
   }
 
@@ -29,14 +29,14 @@ public final class Parameter {
     return name;
   }
 
-  /** The instance type of {@link #getValue()}. */
-  public Type getType() {
-    return type;
-  }
-
   /** Parameter value. */
   public Object getValue() {
     return value;
+  }
+
+  /** The instance type of {@link #getValue()}. */
+  public Type getValueType() {
+    return type;
   }
 
   @Override public String toString() {

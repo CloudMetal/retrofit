@@ -47,7 +47,7 @@ public class GsonConverter implements Converter {
     try {
       return new JsonTypedBytes(gson.toJson(object).getBytes(UTF_8));
     } catch (UnsupportedEncodingException e) {
-      throw new IllegalStateException(UTF_8 + " encoding does not exist.", e);
+      throw new AssertionError(e);
     }
   }
 
@@ -58,7 +58,7 @@ public class GsonConverter implements Converter {
       jsonWriter.beginObject();
       for (Parameter parameter : parameters) {
         jsonWriter.name(parameter.getName());
-        gson.toJson(parameter.getValue(), parameter.getType(), jsonWriter);
+        gson.toJson(parameter.getValue(), parameter.getValueType(), jsonWriter);
       }
       jsonWriter.endObject();
       jsonWriter.close();

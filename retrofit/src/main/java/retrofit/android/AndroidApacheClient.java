@@ -1,3 +1,4 @@
+// Copyright 2012 Square, Inc.
 package retrofit.android;
 
 import android.net.http.AndroidHttpClient;
