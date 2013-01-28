@@ -18,13 +18,14 @@ public final class Response {
     if (reason == null) {
       throw new NullPointerException("Reason must not be null.");
     }
-    if (headers == null) {
-      throw new NullPointerException("Headers must not be null.");
-    }
 
     this.status = status;
     this.reason = reason;
-    this.headers = Collections.unmodifiableList(headers);
+    if (headers == null) {
+      this.headers = Collections.emptyList();
+    } else {
+      this.headers = Collections.unmodifiableList(headers);
+    }
     this.body = body;
   }
 

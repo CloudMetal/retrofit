@@ -189,6 +189,9 @@ public class RestAdapter {
 
         Type type = methodDetails.type;
         if (statusCode >= 200 && statusCode < 300) { // 2XX == successful request
+          if (body == null) {
+            return null;
+          }
           try {
             return converter.fromBody(body, type);
           } catch (ConversionException e) {
