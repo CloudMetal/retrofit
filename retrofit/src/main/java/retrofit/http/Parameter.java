@@ -19,6 +19,10 @@ public final class Parameter {
   private final Object value;
 
   public Parameter(String name, Object value, Type valueType) {
+    if (name == null) {
+      throw new NullPointerException("Parameter name cannot be null.");
+    }
+
     this.name = name;
     this.type = valueType;
     this.value = value;
@@ -43,6 +47,11 @@ public final class Parameter {
     return name + "=" + value;
   }
 
+  /**
+   * NOTE: This method only uses {@link #getName()}} and {@link #getValue()}} for equality testing.
+   * <p/>
+   * {@inheritDoc}
+   */
   @Override public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
@@ -50,15 +59,19 @@ public final class Parameter {
     Parameter parameter = (Parameter) o;
 
     if (!name.equals(parameter.name)) return false;
-    if (!type.equals(parameter.type)) return false;
     if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
 
     return true;
   }
 
+  /**
+   * NOTE: This method only uses {@link #getName()} and {@link #getValue()}} for computing hash
+   * code.
+   * <p/>
+   * {@inheritDoc}
+   */
   @Override public int hashCode() {
     int result = name.hashCode();
-    result = 31 * result + type.hashCode();
     result = 31 * result + (value != null ? value.hashCode() : 0);
     return result;
   }
