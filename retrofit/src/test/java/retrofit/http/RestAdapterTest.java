@@ -1,6 +1,7 @@
 // Copyright 2013 Square, Inc.
 package retrofit.http;
 
+import java.io.IOException;
 import java.util.concurrent.Executor;
 import org.junit.Before;
 import org.junit.Test;
@@ -9,6 +10,7 @@ import retrofit.http.client.Request;
 import retrofit.http.client.Response;
 
 import static org.fest.assertions.api.Assertions.assertThat;
+import static org.fest.assertions.api.Assertions.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
@@ -85,5 +87,55 @@ public class RestAdapterTest {
     verify(mockRequestExecutor).execute(any(CallbackRunnable.class));
     verify(mockCallbackExecutor).execute(any(Runnable.class));
     verify(callback).success(eq(null));
+  }
+
+  @Test public void malformedResponseThrowsConversionException() throws Exception {
+    when(mockClient.execute(any(Request.class))) //
+        .thenReturn(new Response(200, "OK", null, "{".getBytes("UTF-8")));
+
+    try {
+      example.something();
+      fail("RetrofitError expected on malformed response body.");
+    } catch (RetrofitError e) {
+      assertThat(e.getStatusCode()).isEqualTo(200);
+      assertThat(e.getException()).isInstanceOf(ConversionException.class);
+      assertThat(e.getRawBody()).isEqualTo("{".getBytes("UTF-8"));
+    }
+  }
+
+  @Test public void errorResponseThrowsHttpError() throws Exception {
+    when(mockClient.execute(any(Request.class))) //
+        .thenReturn(new Response(500, "Internal Server Error", null, null));
+
+    try {
+      example.something();
+      fail("RetrofitError expected on non-2XX response code.");
+    } catch (RetrofitError e) {
+      assertThat(e.getStatusCode()).isEqualTo(500);
+    }
+  }
+
+  @Test public void clientExceptionThrowsNetworkError() throws Exception{
+    IOException exception = new IOException("I'm broken.");
+    when(mockClient.execute(any(Request.class))).thenThrow(exception);
+
+    try {
+      example.something();
+      fail("RetrofitError expected when client throws exception.");
+    } catch (RetrofitError e) {
+      assertThat(e.getException()).isSameAs(exception);
+    }
+  }
+
+  @Test public void unexpectedExceptionThrows() {
+    RuntimeException exception = new RuntimeException("More breakage.");
+    when(mockProfiler.beforeCall()).thenThrow(exception);
+
+    try {
+      example.something();
+      fail("RetrofitError expected when unexpected exception thrown.");
+    } catch (RetrofitError e) {
+      assertThat(e.getException()).isSameAs(exception);
+    }
   }
 }
