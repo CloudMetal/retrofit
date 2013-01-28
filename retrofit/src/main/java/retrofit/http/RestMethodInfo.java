@@ -66,6 +66,9 @@ final class RestMethodInfo {
         } catch (Exception e) {
           throw new RuntimeException("Failed to extract URI path.", e);
         }
+        if (!path.startsWith("/")) {
+          throw new IllegalArgumentException("URL path must be prefixed with '/'.");
+        }
         pathParams = parsePathParameters(path);
         restMethod = methodInfo;
       } else if (annotationType == QueryParams.class) {

@@ -18,14 +18,11 @@ public class Server {
   }
 
   public Server(String apiUrl, String type) {
-    if (!apiUrl.endsWith("/")) {
-      apiUrl += "/";
-    }
     this.apiUrl = apiUrl;
     this.type = type;
   }
 
-  /** Gets the base API url. Includes a trailing '/'. */
+  /** Gets the base API url. */
   public String apiUrl() {
     return apiUrl;
   }

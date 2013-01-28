@@ -20,8 +20,8 @@ import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 
 public class RestMethodInfoTest {
   @Test public void pathParameterParsing() throws Exception {
-    expectParams("");
-    expectParams("foo");
+    expectParams("/");
+    expectParams("/foo");
     expectParams("foo/bar");
     expectParams("foo/bar/{}");
     expectParams("foo/bar/{taco}", "taco");
@@ -42,9 +42,22 @@ public class RestMethodInfoTest {
     }
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void pathMustBePrefixedWithSlash() {
+    class Example {
+      @GET("foo/bar") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+  }
+
   @Test public void concreteCallbackTypes() {
     class Example {
-      @GET("foo") void a(ResponseCallback cb) {
+      @GET("/foo") void a(ResponseCallback cb) {
       }
     }
 
@@ -56,7 +69,7 @@ public class RestMethodInfoTest {
 
   @Test public void concreteCallbackTypesWithParams() {
     class Example {
-      @GET("foo") void a(@Named("id") String id, ResponseCallback cb) {
+      @GET("/foo") void a(@Named("id") String id, ResponseCallback cb) {
       }
     }
 
@@ -68,7 +81,7 @@ public class RestMethodInfoTest {
 
   @Test public void genericCallbackTypes() {
     class Example {
-      @GET("foo") void a(Callback<Response> cb) {
+      @GET("/foo") void a(Callback<Response> cb) {
       }
     }
 
@@ -80,7 +93,7 @@ public class RestMethodInfoTest {
 
   @Test public void genericCallbackTypesWithParams() {
     class Example {
-      @GET("foo") void a(@Named("id") String id, Callback<Response> c) {
+      @GET("/foo") void a(@Named("id") String id, Callback<Response> c) {
       }
     }
 
@@ -92,7 +105,7 @@ public class RestMethodInfoTest {
 
   @Test public void wildcardGenericCallbackTypes() {
     class Example {
-      @GET("foo") void a(Callback<? extends Response> c) {
+      @GET("/foo") void a(Callback<? extends Response> c) {
       }
     }
 
@@ -104,7 +117,7 @@ public class RestMethodInfoTest {
 
   @Test public void genericCallbackWithGenericType() {
     class Example {
-      @GET("foo") void a(Callback<List<String>> c) {
+      @GET("/foo") void a(Callback<List<String>> c) {
       }
     }
 
@@ -119,7 +132,7 @@ public class RestMethodInfoTest {
   @Ignore // TODO support this case!
   @Test public void extendingGenericCallback() {
     class Example {
-      @GET("foo") void a(ExtendingCallback<Response> callback) {
+      @GET("/foo") void a(ExtendingCallback<Response> callback) {
       }
     }
 
@@ -131,7 +144,7 @@ public class RestMethodInfoTest {
 
   @Test public void synchronousResponse() {
     class Example {
-      @GET("foo") Response a() {
+      @GET("/foo") Response a() {
         return null;
       }
     }
@@ -144,7 +157,7 @@ public class RestMethodInfoTest {
 
   @Test public void synchronousGenericResponse() {
     class Example {
-      @GET("foo") List<String> a() {
+      @GET("/foo") List<String> a() {
         return null;
       }
     }
@@ -160,7 +173,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalArgumentException.class)
   public void missingCallbackTypes() {
     class Example {
-      @GET("foo") void a(@Named("id") String id) {
+      @GET("/foo") void a(@Named("id") String id) {
       }
     }
 
@@ -171,7 +184,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalArgumentException.class)
   public void synchronousWithAsyncCallback() {
     class Example {
-      @GET("foo") Response a(Callback<Response> callback) {
+      @GET("/foo") Response a(Callback<Response> callback) {
         return null;
       }
     }
@@ -195,7 +208,7 @@ public class RestMethodInfoTest {
 
   @Test public void deleteMethod() {
     class Example {
-      @DELETE("foo") Response a() {
+      @DELETE("/foo") Response a() {
         return null;
       }
     }
@@ -206,12 +219,12 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("DELETE");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @Test public void getMethod() {
     class Example {
-      @GET("foo") Response a() {
+      @GET("/foo") Response a() {
         return null;
       }
     }
@@ -222,12 +235,12 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("GET");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @Test public void headMethod() {
     class Example {
-      @HEAD("foo") Response a() {
+      @HEAD("/foo") Response a() {
         return null;
       }
     }
@@ -238,12 +251,12 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("HEAD");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @Test public void postMethod() {
     class Example {
-      @POST("foo") Response a() {
+      @POST("/foo") Response a() {
         return null;
       }
     }
@@ -254,12 +267,12 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("POST");
     assertThat(methodInfo.restMethod.hasBody()).isTrue();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @Test public void putMethod() {
     class Example {
-      @PUT("foo") Response a() {
+      @PUT("/foo") Response a() {
         return null;
       }
     }
@@ -270,7 +283,7 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("PUT");
     assertThat(methodInfo.restMethod.hasBody()).isTrue();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @RestMethod("CUSTOM1")
@@ -281,7 +294,7 @@ public class RestMethodInfoTest {
 
   @Test public void custom1Method() {
     class Example {
-      @CUSTOM1("foo") Response a() {
+      @CUSTOM1("/foo") Response a() {
         return null;
       }
     }
@@ -292,7 +305,7 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("CUSTOM1");
     assertThat(methodInfo.restMethod.hasBody()).isFalse();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @RestMethod(value = "CUSTOM2", hasBody = true)
@@ -303,7 +316,7 @@ public class RestMethodInfoTest {
 
   @Test public void custom2Method() {
     class Example {
-      @CUSTOM2("foo") Response a() {
+      @CUSTOM2("/foo") Response a() {
         return null;
       }
     }
@@ -314,12 +327,12 @@ public class RestMethodInfoTest {
 
     assertThat(methodInfo.restMethod.value()).isEqualTo("CUSTOM2");
     assertThat(methodInfo.restMethod.hasBody()).isTrue();
-    assertThat(methodInfo.path).isEqualTo("foo");
+    assertThat(methodInfo.path).isEqualTo("/foo");
   }
 
   @Test public void singleQueryParam() {
     class Example {
-      @GET("foo")
+      @GET("/foo")
       @QueryParam(name = "a", value = "b")
       Response a() {
         return null;
@@ -338,7 +351,7 @@ public class RestMethodInfoTest {
 
   @Test public void multipleQueryParam() {
     class Example {
-      @GET("foo")
+      @GET("/foo")
       @QueryParams({
           @QueryParam(name = "a", value = "b"),
           @QueryParam(name = "c", value = "d")
@@ -364,7 +377,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void bothQueryParamAnnotations() {
     class Example {
-      @GET("foo")
+      @GET("/foo")
       @QueryParam(name = "a", value = "b")
       @QueryParams({
           @QueryParam(name = "a", value = "b"),
@@ -383,7 +396,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void emptyQueryParams() {
     class Example {
-      @GET("foo")
+      @GET("/foo")
       @QueryParams({})
       Response a() {
         return null;
@@ -396,7 +409,7 @@ public class RestMethodInfoTest {
 
   @Test public void noQueryParamsNonNull() {
     class Example {
-      @GET("") Response a() {
+      @GET("/") Response a() {
         return null;
       }
     }
@@ -411,7 +424,7 @@ public class RestMethodInfoTest {
 
   @Test public void emptyParams() {
     class Example {
-      @GET("") Response a() {
+      @GET("/") Response a() {
         return null;
       }
     }
@@ -427,7 +440,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleParam() {
     class Example {
-      @GET("") Response a(@Named("a") String a) {
+      @GET("/") Response a(@Named("a") String a) {
         return null;
       }
     }
@@ -443,7 +456,7 @@ public class RestMethodInfoTest {
 
   @Test public void multipleParams() {
     class Example {
-      @GET("") Response a(@Named("a") String a, @Named("b") String b, @Named("c") String c) {
+      @GET("/") Response a(@Named("a") String a, @Named("b") String b, @Named("c") String c) {
         return null;
       }
     }
@@ -459,7 +472,7 @@ public class RestMethodInfoTest {
 
   @Test public void emptyParamsWithCallback() {
     class Example {
-      @GET("") void a(ResponseCallback cb) {
+      @GET("/") void a(ResponseCallback cb) {
       }
     }
 
@@ -474,7 +487,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleParamWithCallback() {
     class Example {
-      @GET("") void a(@Named("a") String a, ResponseCallback cb) {
+      @GET("/") void a(@Named("a") String a, ResponseCallback cb) {
       }
     }
 
@@ -489,7 +502,7 @@ public class RestMethodInfoTest {
 
   @Test public void multipleParamsWithCallback() {
     class Example {
-      @GET("") void a(@Named("a") String a, @Named("b") String b, ResponseCallback cb) {
+      @GET("/") void a(@Named("a") String a, @Named("b") String b, ResponseCallback cb) {
       }
     }
 
@@ -504,7 +517,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleEntity() {
     class Example {
-      @PUT("") Response a(@SingleEntity Object o) {
+      @PUT("/") Response a(@SingleEntity Object o) {
         return null;
       }
     }
@@ -521,7 +534,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleEntityTypedBytes() {
     class Example {
-      @PUT("") Response a(@SingleEntity TypedBytes o) {
+      @PUT("/") Response a(@SingleEntity TypedBytes o) {
         return null;
       }
     }
@@ -538,7 +551,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleEntityWithCallback() {
     class Example {
-      @PUT("") void a(@SingleEntity Object o, ResponseCallback cb) {
+      @PUT("/") void a(@SingleEntity Object o, ResponseCallback cb) {
       }
     }
 
@@ -555,7 +568,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void twoSingleEntities() {
     class Example {
-      @PUT("") Response a(@SingleEntity int o1, @SingleEntity int o2) {
+      @PUT("/") Response a(@SingleEntity int o1, @SingleEntity int o2) {
         return null;
       }
     }
@@ -567,7 +580,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleEntityWithNamed() {
     class Example {
-      @PUT("{a}/{c}") Response a(@Named("a") int a, @SingleEntity int b, @Named("c") int c) {
+      @PUT("/{a}/{c}") Response a(@Named("a") int a, @SingleEntity int b, @Named("c") int c) {
         return null;
       }
     }
@@ -582,7 +595,7 @@ public class RestMethodInfoTest {
 
   @Test public void singleEntityWithNamedAndCallback() {
     class Example {
-      @PUT("{a}") void a(@Named("a") int a, @SingleEntity int b, ResponseCallback cb) {
+      @PUT("/{a}") void a(@Named("a") int a, @SingleEntity int b, ResponseCallback cb) {
       }
     }
 
@@ -598,7 +611,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void nonPathParamAndSingleEntity() {
     class Example {
-      @PUT("") Response a(@Named("a") int a, @SingleEntity int b) {
+      @PUT("/") Response a(@Named("a") int a, @SingleEntity int b) {
         return null;
       }
     }
@@ -611,7 +624,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void typedBytesUrlParam() {
     class Example {
-      @GET("{a}") Response a(@Named("a") TypedBytes m) {
+      @GET("/{a}") Response a(@Named("a") TypedBytes m) {
         return null;
       }
     }
@@ -624,7 +637,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void pathParamNonPathParamAndTypedBytes() {
     class Example {
-      @PUT("{a}") Response a(@Named("a") int a, @Named("b") int b, @SingleEntity int c) {
+      @PUT("/{a}") Response a(@Named("a") int a, @Named("b") int b, @SingleEntity int c) {
         return null;
       }
     }
@@ -637,7 +650,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void parameterWithoutAnnotation() {
     class Example {
-      @GET("") Response a(String a) {
+      @GET("/") Response a(String a) {
         return null;
       }
     }
@@ -650,7 +663,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void nonBodyHttpMethodWithSingleEntity() {
     class Example {
-      @GET("") Response a(@SingleEntity Object o) {
+      @GET("/") Response a(@SingleEntity Object o) {
         return null;
       }
     }
@@ -663,7 +676,7 @@ public class RestMethodInfoTest {
   @Test(expected = IllegalStateException.class)
   public void nonBodyHttpMethodWithTypedBytes() {
     class Example {
-      @GET("") Response a(@Named("a") TypedBytes a) {
+      @GET("/") Response a(@Named("a") TypedBytes a) {
         return null;
       }
     }
@@ -675,7 +688,7 @@ public class RestMethodInfoTest {
 
   @Test public void simpleMultipart() {
     class Example {
-      @PUT("") Response a(@Named("a") TypedBytes a) {
+      @PUT("/") Response a(@Named("a") TypedBytes a) {
         return null;
       }
     }
@@ -689,7 +702,7 @@ public class RestMethodInfoTest {
 
   @Test public void twoTypedBytesMultipart() {
     class Example {
-      @PUT("") Response a(@Named("a") TypedBytes a, @Named("b") TypedBytes b) {
+      @PUT("/") Response a(@Named("a") TypedBytes a, @Named("b") TypedBytes b) {
         return null;
       }
     }
@@ -703,7 +716,7 @@ public class RestMethodInfoTest {
 
   @Test public void twoTypesMultipart() {
     class Example {
-      @PUT("") Response a(@Named("a") TypedBytes a, @Named("b") int b) {
+      @PUT("/") Response a(@Named("a") TypedBytes a, @Named("b") int b) {
         return null;
       }
     }

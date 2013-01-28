@@ -121,12 +121,11 @@ final class RequestBuilder {
     }
 
     StringBuilder url = new StringBuilder(apiUrl);
-    if (!apiUrl.endsWith("/")) {
-      url.append("/");
+    if (apiUrl.endsWith("/")) {
+      // We enforce relative paths to start with '/'. Prevent a double-slash.
+      url.deleteCharAt(url.length() - 1);
     }
-    if (replacedPath != null) {
-      url.append(replacedPath);
-    }
+    url.append(replacedPath);
 
     TypedBytes body = null;
     Map<String, TypedBytes> bodyParams = new LinkedHashMap<String, TypedBytes>();

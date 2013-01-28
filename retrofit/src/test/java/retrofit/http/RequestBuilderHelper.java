@@ -15,7 +15,6 @@ import static retrofit.http.RestMethodInfo.NO_SINGLE_ENTITY;
 
 public class RequestBuilderHelper {
   public static final Converter GSON = new GsonConverter(new Gson());
-  public static final String URL = "http://example.com/";
 
   private boolean isSynchronous = true;
   private boolean isMultipart = false;
@@ -28,6 +27,7 @@ public class RequestBuilderHelper {
   private final List<Object> args = new ArrayList<Object>();
   private final List<Header> headers = new ArrayList<Header>();
   private int singleEntityArgumentIndex = NO_SINGLE_ENTITY;
+  private String url;
 
   public RequestBuilderHelper setAsynchronous() {
     isSynchronous = false;
@@ -87,6 +87,11 @@ public class RequestBuilderHelper {
     return this;
   }
 
+  public RequestBuilderHelper setUrl(String url) {
+    this.url = url;
+    return this;
+  }
+
   public Request build() throws NoSuchMethodException, URISyntaxException {
     if (method == null) {
       throw new IllegalStateException("Method must be set.");
@@ -119,7 +124,7 @@ public class RequestBuilderHelper {
     methodInfo.loaded = true;
 
     return new RequestBuilder(GSON)
-        .setApiUrl(URL)
+        .setApiUrl(url)
         .setHeaders(headers)
         .setArgs(args.toArray(new Object[args.size()]))
         .setMethodInfo(methodInfo)
