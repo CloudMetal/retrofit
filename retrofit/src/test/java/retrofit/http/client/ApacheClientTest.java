@@ -105,6 +105,20 @@ public class ApacheClientTest {
     assertBytes(response.getBody(), "hello");
   }
 
+  @Test public void emptyResponse() throws Exception {
+    StatusLine statusLine = new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK");
+    HttpResponse apacheResponse = new BasicHttpResponse(statusLine);
+    apacheResponse.addHeader("foo", "bar");
+    apacheResponse.addHeader("kit", "kat");
+    Response response = ApacheClient.parseResponse(apacheResponse);
+
+    assertThat(response.getStatus()).isEqualTo(200);
+    assertThat(response.getReason()).isEqualTo("OK");
+    assertThat(response.getHeaders()).hasSize(2) //
+        .containsExactly(new Header("foo", "bar"), new Header("kit", "kat"));
+    assertThat(response.getBody()).isNull();
+  }
+
   private static void assertBytes(byte[] bytes, String expected) throws Exception {
     assertThat(new String(bytes, "UTF-8")).isEqualTo(expected);
   }

@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
@@ -65,8 +66,6 @@ public class ApacheClient implements Client {
   }
 
   static Response parseResponse(HttpResponse response) throws IOException {
-    byte[] body = EntityUtils.toByteArray(response.getEntity());
-
     StatusLine statusLine = response.getStatusLine();
     int status = statusLine.getStatusCode();
     String reason = statusLine.getReasonPhrase();
@@ -74,6 +73,12 @@ public class ApacheClient implements Client {
     List<Header> headers = new ArrayList<Header>();
     for (org.apache.http.Header header : response.getAllHeaders()) {
       headers.add(new Header(header.getName(), header.getValue()));
+    }
+
+    byte[] body = null;
+    HttpEntity entity = response.getEntity();
+    if (entity != null) {
+      body = EntityUtils.toByteArray(entity);
     }
 
     return new Response(status, reason, headers, body);
