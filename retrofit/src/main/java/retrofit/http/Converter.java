@@ -2,7 +2,6 @@
 package retrofit.http;
 
 import java.lang.reflect.Type;
-import java.util.List;
 import retrofit.io.TypedBytes;
 
 /**
@@ -29,12 +28,4 @@ public interface Converter {
    * @return Representation of the specified object as bytes.
    */
   TypedBytes toBody(Object object);
-
-  /**
-   * Convert a list of parameters to an appropriate representation for HTTP transport.
-   *
-   * @param parameters Parameters which make up the request body.
-   * @return Representation of the specified parameters as bytes.
-   */
-  TypedBytes toBody(List<Parameter> parameters);
 }

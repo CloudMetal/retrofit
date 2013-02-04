@@ -688,7 +688,8 @@ public class RestMethodInfoTest {
 
   @Test public void simpleMultipart() {
     class Example {
-      @PUT("/") Response a(@Named("a") TypedBytes a) {
+      @Multipart @PUT("/")
+      Response a(@Named("a") TypedBytes a) {
         return null;
       }
     }
@@ -702,7 +703,8 @@ public class RestMethodInfoTest {
 
   @Test public void twoTypedBytesMultipart() {
     class Example {
-      @PUT("/") Response a(@Named("a") TypedBytes a, @Named("b") TypedBytes b) {
+      @Multipart @PUT("/")
+      Response a(@Named("a") TypedBytes a, @Named("b") TypedBytes b) {
         return null;
       }
     }
@@ -716,7 +718,8 @@ public class RestMethodInfoTest {
 
   @Test public void twoTypesMultipart() {
     class Example {
-      @PUT("/") Response a(@Named("a") TypedBytes a, @Named("b") int b) {
+      @Multipart @PUT("/")
+      Response a(@Named("a") TypedBytes a, @Named("b") int b) {
         return null;
       }
     }
@@ -726,6 +729,32 @@ public class RestMethodInfoTest {
     methodInfo.init();
 
     assertThat(methodInfo.isMultipart).isTrue();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void implicitMultipartForbidden() {
+    class Example {
+      @POST("/") Response a(@Named("a") int a) {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void multipartFailsOnNonBodyMethod() {
+    class Example {
+      @Multipart @GET("/") Response a() {
+        return null;
+      }
+    }
+
+    Method method = TestingUtils.getMethod(Example.class, "a");
+    RestMethodInfo methodInfo = new RestMethodInfo(method);
+    methodInfo.init();
   }
 
   private static class Response {

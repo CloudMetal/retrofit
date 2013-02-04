@@ -3,16 +3,12 @@ package retrofit.http;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
-import com.google.gson.stream.JsonWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
-import java.util.List;
 import retrofit.io.MimeType;
 import retrofit.io.TypedBytes;
 
@@ -48,23 +44,6 @@ public class GsonConverter implements Converter {
       return new JsonTypedBytes(gson.toJson(object).getBytes(UTF_8));
     } catch (UnsupportedEncodingException e) {
       throw new AssertionError(e);
-    }
-  }
-
-  @Override public TypedBytes toBody(List<Parameter> parameters) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      JsonWriter jsonWriter = new JsonWriter(new OutputStreamWriter(baos));
-      jsonWriter.beginObject();
-      for (Parameter parameter : parameters) {
-        jsonWriter.name(parameter.getName());
-        gson.toJson(parameter.getValue(), parameter.getValueType(), jsonWriter);
-      }
-      jsonWriter.endObject();
-      jsonWriter.close();
-      return new JsonTypedBytes(baos.toByteArray());
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to convert parameters to JSON.", e);
     }
   }
 

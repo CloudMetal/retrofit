@@ -46,7 +46,10 @@ final class RestMethodInfo {
     loaded = true;
   }
 
-  /** Loads {@link #restMethod}, {@link #path}, {@link #pathParams}, {@link #pathQueryParams}. */
+  /**
+   * Loads {@link #restMethod}, {@link #path}, {@link #pathParams}, {@link #pathQueryParams}, and
+   * {@link #isMultipart}.
+   */
   private void parseMethodAnnotations() {
     for (Annotation methodAnnotation : method.getAnnotations()) {
       Class<? extends Annotation> annotationType = methodAnnotation.annotationType();
@@ -86,12 +89,18 @@ final class RestMethodInfo {
               "QueryParam and QueryParams annotations are mutually exclusive.");
         }
         pathQueryParams = new QueryParam[] { (QueryParam) methodAnnotation };
+      } else if (annotationType == Multipart.class) {
+        isMultipart = true;
       }
     }
 
     if (restMethod == null) {
       throw new IllegalStateException(
           "Method " + method + " not annotated with request type (e.g., GET, POST).");
+    }
+    if (!restMethod.hasBody() && isMultipart) {
+      throw new IllegalStateException(
+          "Multipart can only be specific on HTTP methods with request body (e.g., POST).");
     }
     if (pathQueryParams == null) {
       pathQueryParams = new QueryParam[0];
@@ -154,8 +163,8 @@ final class RestMethodInfo {
   }
 
   /**
-   * Loads {@link #namedParams}, {@link #singleEntityArgumentIndex}, and {@link #isMultipart}. Must
-   * be called after {@link #parseMethodAnnotations()}}.
+   * Loads {@link #namedParams}, {@link #singleEntityArgumentIndex}. Must be called after
+   * {@link #parseMethodAnnotations()}}.
    */
   private void parseParameters() {
     Class<?>[] parameterTypes = method.getParameterTypes();
@@ -177,13 +186,18 @@ final class RestMethodInfo {
         if (annotationType == Named.class) {
           String name = ((Named) parameterAnnotation).value();
           namedParams[i] = name;
-          if (parameterType == TypedBytes.class) {
-            if (pathParams.contains(name)) {
-              throw new IllegalStateException("TypedBytes cannot be used as URL parameter.");
-            }
-            isMultipart = true;
+          boolean isPathParam = pathParams.contains(name);
+          if (parameterType == TypedBytes.class && (isPathParam || !restMethod.hasBody())) {
+            throw new IllegalStateException("TypedBytes cannot be used as URL parameter.");
+          }
+          if (!isPathParam && !isMultipart && restMethod.hasBody()) {
+            throw new IllegalStateException(
+                "Non-path params can only be used in multipart request.");
           }
         } else if (annotationType == SingleEntity.class) {
+          if (isMultipart) {
+            throw new IllegalStateException("SingleEntity cannot be used with multipart request.");
+          }
           if (singleEntityArgumentIndex != NO_SINGLE_ENTITY) {
             throw new IllegalStateException(
                 "Method annotated with multiple SingleEntity method annotations: " + method);
